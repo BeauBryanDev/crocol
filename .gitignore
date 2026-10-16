@@ -1,0 +1,8 @@
+.env
+.env.*
+magdalena/
+__pycache__/
+*.pyc
+audit_out/
+tables_out/
+chunks/
