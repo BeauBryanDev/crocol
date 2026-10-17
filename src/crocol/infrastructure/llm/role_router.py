@@ -4,7 +4,7 @@ from typing import Protocol
 from pydantic import BaseModel
 
 from config.roles import FALLBACKS, MAX_OUTPUT_TOKENS, MODELS
-from crocol.application.ports.llm import LLMResult
+from crocol.application.ports.llm import Images, LLMResult
 
 TRIES_PER_MODEL = 2
 JUDGE_ROLES = ("grade", "verify", "conflict")
@@ -16,7 +16,8 @@ class Provider(Protocol):
                        system: str,
                        user: str,
                        schema: type[BaseModel],
-                       max_tokens: int
+                       max_tokens: int,
+                       images: Images = ()
                        ) -> LLMResult: ...
 
 
@@ -45,7 +46,8 @@ class RoleRouter:
                       role: str,
                       system: str,
                       user: str,
-                      schema: type[BaseModel]
+                      schema: type[BaseModel],
+                      images: Images = ()
                       ) -> LLMResult:
 
         provider = self.provider(model)
@@ -56,7 +58,8 @@ class RoleRouter:
         for _ in range(TRIES_PER_MODEL):
             try:
                 result = await provider.complete(
-                    model, system, user, schema, MAX_OUTPUT_TOKENS[role])
+                    model, system, user, schema, MAX_OUTPUT_TOKENS[role],
+                    images)
             except Exception as exc:
                 result = LLMResult(parsed=None, model=model,
                                    error=type(exc).__name__)
@@ -70,11 +73,13 @@ class RoleRouter:
                        role: str,
                        system: str,
                        user: str,
-                       schema: type[BaseModel]
+                       schema: type[BaseModel],
+                       images: Images = ()
                        ) -> LLMResult:
 
         model = MODELS[role]
-        result = await self.attempt(model, role, system, user, schema)
+        result = await self.attempt(model, role, system, user, schema,
+                                    images)
         judged_by_other_family = role in JUDGE_ROLES and is_gemini(model)
         if result.ok:
             return replace(result, cross_family=judged_by_other_family)
@@ -83,5 +88,6 @@ class RoleRouter:
         if fallback is None or fallback == model:
             return replace(result, cross_family=judged_by_other_family)
 
-        backup = await self.attempt(fallback, role, system, user, schema)
+        backup = await self.attempt(fallback, role, system, user, schema,
+                                    images)
         return replace(backup, cross_family=False)

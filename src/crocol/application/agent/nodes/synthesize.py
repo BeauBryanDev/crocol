@@ -9,6 +9,46 @@ LANGUAGES = {
 }
 
 
+def partial_note(state: AgentState) -> str:
+
+    if not state.get("partial_evidence"):
+        return ""
+
+    missing = (state.get("grade") or {}).get("missing", "")
+    return (
+        "EVIDENCE STATUS: PARTIAL\n"
+        f"NOT COVERED BY THE EVIDENCE: {missing}\n\n"
+    )
+
+
+def conflict_line(conflict: dict) -> str:
+
+    sides = []
+    for side in conflict["sides"]:
+        sides.append(f"[{side['label']}] {side['value']} {side['unit']}")
+    note = "" if conflict["comparable"] else " (NOT COMPARABLE: units differ)"
+    return (f"- {conflict['entity']} / {conflict['property']}: "
+            + " vs ".join(sides) + note)
+
+
+def research_note(state: AgentState) -> str:
+
+    subs = state.get("sub_questions") or []
+    if state.get("mode") != "research" or not subs:
+        return ""
+
+    lines = ["MODE: RESEARCH REPORT", "SUB-QUESTIONS:"]
+    for number, sub in enumerate(subs, 1):
+        lines.append(f"{number}. {sub['question']}")
+    conflicts = state.get("conflicts") or []
+    if conflicts:
+        lines.append("SOURCES DISAGREE (quotes verified):")
+        for conflict in conflicts:
+            lines.append(conflict_line(conflict))
+
+    return "\n".join(lines) + "\n\n"
+
+
 def synthesis_request(state: AgentState) -> str:
     
     language = LANGUAGES.get(state.get("language", "es"), "Spanish")
@@ -16,6 +56,8 @@ def synthesis_request(state: AgentState) -> str:
     return (
         f"ANSWER LANGUAGE: {language}\n"
         f"ALLOW_GENERAL_KNOWLEDGE: {str(ALLOW_GENERAL_KNOWLEDGE).lower()}\n\n"
+        f"{partial_note(state)}"
+        f"{research_note(state)}"
         f"QUESTION:\n{state['question']}\n\n"
         f"EVIDENCE:\n{render_evidence(state.get('evidence') or [])}"
     )

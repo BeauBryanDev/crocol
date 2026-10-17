@@ -8,12 +8,14 @@ from pydantic import BaseModel
 from crocol.application.agent.schemas import Prompt, load_prompt
 from crocol.application.ports.documents import DocumentStore
 from crocol.application.ports.graph import GraphSearch
-from crocol.application.ports.llm import LLM, LLMResult
+from crocol.application.ports.llm import LLM, Images, LLMResult
 from crocol.application.ports.spatial import SpatialSearch
 from crocol.application.ports.vector_search import VectorSearch
+from crocol.application.ports.vision import CrackAnalyzer
 from crocol.domains.models.answers import Answer
 from crocol.domains.models.chunks import Chunk
 from crocol.domains.models.claims import Claim
+from crocol.domains.models.cracks import CrackReport
 from crocol.domains.models.traces import TraceEvent
 
 
@@ -28,6 +30,7 @@ def merge_channels(
     old: dict[str, ChannelResult] | None,
     new: dict[str, ChannelResult] | None,
 ) -> dict[str, ChannelResult]:
+    
     return {**(old or {}), **(new or {})}
 
 
@@ -41,6 +44,7 @@ class AgentState(TypedDict, total=False):
     query_type: Literal["exact", "conceptual", "cross_language"]
     query_variants: list[str]
     bm25_query: str | None
+    places: list[dict]
     channels: Annotated[dict[str, ChannelResult], merge_channels]
     chunks: list[Chunk]
     evidence: list[Chunk]
@@ -48,11 +52,17 @@ class AgentState(TypedDict, total=False):
     attempts: int
     strategies: list[str]
     repeated: bool
+    partial_evidence: bool
     draft: dict[str, Any] | None
     claims: list[Claim]
     verified: bool
     revised: bool
     conflicts: list[dict]
+    sub_questions: list[dict]
+    sub_results: Annotated[list[dict], operator.add]
+    image: bytes | None
+    vision_report: CrackReport | None
+    overlay: bytes
     answer: Answer | None
     partial: bool
     llm_calls: Annotated[int, operator.add]
@@ -68,9 +78,11 @@ class AgentDeps:
     documents: DocumentStore | None = None
     spatial: SpatialSearch | None = None
     graph: GraphSearch | None = None
+    vision: CrackAnalyzer | None = None
 
 
-def initial_state(question: str) -> AgentState:
+def initial_state(question: str,
+                  image: bytes | None = None) -> AgentState:
     return {
         "question": question,
         "language": "es",
@@ -80,6 +92,7 @@ def initial_state(question: str) -> AgentState:
         "query_type": "conceptual",
         "query_variants": [question],
         "bm25_query": None,
+        "places": [],
         "channels": {},
         "chunks": [],
         "evidence": [],
@@ -87,11 +100,17 @@ def initial_state(question: str) -> AgentState:
         "attempts": 0,
         "strategies": [],
         "repeated": False,
+        "partial_evidence": False,
         "draft": None,
         "claims": [],
         "verified": False,
         "revised": False,
         "conflicts": [],
+        "sub_questions": [],
+        "sub_results": [],
+        "image": image,
+        "vision_report": None,
+        "overlay": b"",
         "answer": None,
         "partial": False,
         "llm_calls": 0,
@@ -109,11 +128,19 @@ def strategy_of(
 ) -> str:
     """Fingerprint of one retrieval attempt; a retry must change it."""
     normalized = sorted(v.strip().casefold() for v in variants)
-    key = "|".join([*normalized, corpus_scope, chunk_policy, query_type])
+    key = "|".join([*normalized,
+                    corpus_scope, 
+                    chunk_policy,
+                    query_type])
+    
     return hashlib.sha1(key.encode("utf-8")).hexdigest()[:12]
 
 
-def usage_of(role: str, prompt: Prompt, result: LLMResult) -> dict:
+def usage_of(role: str, 
+             prompt: Prompt,
+             result: LLMResult
+             ) -> dict:
+    # TODO: add a "cost" field to LLMResult
     return {
         "role": role,
         "prompt": f"{prompt.name}@{prompt.version}",
@@ -131,8 +158,12 @@ async def ask(
     prompt_name: str,
     user: str,
     schema: type[BaseModel],
+    images: Images = (),
 ) -> tuple[BaseModel | None, dict]:
     """Call one model role; returns the parsed output (or None) and usage."""
     prompt = load_prompt(prompt_name)
-    result = await deps.llm.generate(role, prompt.text, user, schema)
+    result = await deps.llm.generate(role,
+                                     prompt.text,
+                                     user, schema, images)
+    
     return result.parsed, usage_of(role, prompt, result)

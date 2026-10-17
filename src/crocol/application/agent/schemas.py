@@ -17,6 +17,11 @@ Policy = Literal["prose_tables", "numeric"]
 QueryType = Literal["exact", "conceptual", "cross_language"]
 
 
+class PlaceMention(BaseModel):
+    name: str
+    kind: Literal["municipality", "field", "well", "fault", "unknown"]
+
+
 class Analysis(BaseModel):
     language: Literal["es", "en"]
     mode: Literal["quick", "research"]
@@ -26,6 +31,15 @@ class Analysis(BaseModel):
     query_type: QueryType
     variants: list[str]
     bm25_query: str | None = None
+    places: list[PlaceMention] = []
+
+
+class VisualDiagnosis(BaseModel):
+    is_rock: bool
+    rock_description: str
+    diagnosis: str
+    fluid_flow: str
+    confidence: Literal["low", "medium", "high"]
 
 
 class Grade(BaseModel):

@@ -15,3 +15,4 @@ class Answer:
     caveats: tuple[str, ...] = ()
     conflicts: tuple[dict, ...] = field(default_factory=tuple)
     partial: bool = False
+    overlay_webp: bytes = b""

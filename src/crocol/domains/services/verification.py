@@ -75,11 +75,15 @@ def unsupported_numbers(answer: str,
                         evidence: Iterable[str]
                         ) -> list[str]:
     """Numbers in the answer that no evidence text contains, in any reading."""
-    known = evidence_values(evidence)
+    texts = list(evidence)
+    known = evidence_values(texts)
+    literal = set()
+    for text in texts:
+        literal.update(number_tokens(text))
     missing = []
     for token in number_tokens(answer):
-        
-        if is_trivial(token) or token in missing:
+
+        if is_trivial(token) or token in missing or token in literal:
             continue
         if not readings(token) & known:
             missing.append(token)

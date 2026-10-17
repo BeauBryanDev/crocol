@@ -39,6 +39,19 @@ def cited_labels(text: str) -> list[str]:
     return labels
 
 
+def normalize_labels(items: Iterable[str]) -> list[str]:
+    """Accept C2, [C2], c2 or "C2, C5" from a model; return ['C2', ...]."""
+    labels: list[str] = []
+
+    for item in items:
+        for label in LABEL_RE.findall(str(item).upper()):
+
+            if label not in labels:
+                labels.append(label)
+
+    return labels
+
+
 def inner(rendered: str) -> str:
     
     return rendered[1:-1] if rendered.startswith("(") else rendered

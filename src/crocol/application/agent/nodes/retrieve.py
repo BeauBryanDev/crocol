@@ -6,6 +6,7 @@ from crocol.application.agent.state import (
     AgentState,
     ChannelResult,
 )
+from crocol.application.tools.spatial_search import spatial_search
 from crocol.application.tools.text_search import text_search
 from crocol.domains.models.chunks import Chunk
 
@@ -97,8 +98,39 @@ async def retrieve_spatial(
     state: AgentState,
     deps: AgentDeps,
 ) -> tuple[dict, dict]:
-    
-    return skipped(state, "spatial", "spatial tools arrive in Stage 2B")
+    """ANH database lookups for the places the question names."""
+    places = state.get("places") or []
+    if deps.spatial is None:
+        return skipped(state, "spatial", "no spatial store configured")
+    if not places:
+        return skipped(state, "spatial", "the question names no place")
+
+    try:
+        chunks, calls = await spatial_search(
+            deps.spatial, state.get("intents") or [], places)
+    except Exception as exc:
+        failed = ChannelResult(attempt=state.get("attempts", 0),
+                               status="error", lists=[],
+                               detail=type(exc).__name__)
+        return ({"channels": {"spatial": failed}},
+                {"status": "error", "error": type(exc).__name__})
+    if not chunks:
+        return skipped(state, "spatial", "no place matched the database")
+
+    channel = ChannelResult(
+        attempt=state.get("attempts", 0),
+        status="ok",
+        lists=[chunks],
+        detail="",
+    )
+    keys = sorted({key for call in calls for key in call.arguments})
+    summary = {
+        "functions": [call.function for call in calls],
+        "argument_keys": keys,
+        "results": len(chunks),
+    }
+
+    return {"channels": {"spatial": channel}}, summary
 
 
 async def retrieve_graph(

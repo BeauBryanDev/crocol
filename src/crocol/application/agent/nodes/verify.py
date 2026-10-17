@@ -1,6 +1,7 @@
 from crocol.application.agent.schemas import Verification, render_evidence
 from crocol.application.agent.state import AgentDeps, AgentState, ask
 from crocol.domains.models.claims import Claim
+from crocol.domains.services.citations import normalize_labels
 from crocol.domains.services.verification import (
     unknown_labels,
     unsupported_numbers,
@@ -31,7 +32,8 @@ def judged_claims(parsed: Verification | None) -> list[Claim]:
         return [Claim("verifier unavailable", (), "unsupported", numeric=True)]
     claims = []
     for item in parsed.claims:
-        claims.append(Claim(item.claim, tuple(item.labels), item.verdict,
+        labels = tuple(normalize_labels(item.labels))
+        claims.append(Claim(item.claim, labels, item.verdict,
                             numeric=item.numeric))
     return claims
 

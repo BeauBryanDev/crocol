@@ -2,7 +2,7 @@ from google import genai
 from google.genai import types
 from pydantic import BaseModel, ValidationError
 
-from crocol.application.ports.llm import LLMResult
+from crocol.application.ports.llm import Images, LLMResult
 
 THINKING_HEADROOM = 2048
 
@@ -38,12 +38,17 @@ class GeminiLLM:
                        system: str,
                        user: str,
                        schema: type[BaseModel],
-                       max_tokens: int
+                       max_tokens: int,
+                       images: Images = ()
                        ) -> LLMResult:
         """One JSON-schema call, validated locally with the same schema."""
+        contents: list = []
+        for data, mime in images:
+            contents.append(types.Part.from_bytes(data=data, mime_type=mime))
+        contents.append(user)
         response = await self._client.aio.models.generate_content(
             model=model,
-            contents=user,
+            contents=contents,
             config=self.config(system, schema, max_tokens),
         )
 

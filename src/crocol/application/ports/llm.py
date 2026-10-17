@@ -4,6 +4,7 @@ from typing import Protocol, TypeVar
 from pydantic import BaseModel
 
 Schema = TypeVar("Schema", bound=BaseModel)
+Images = tuple[tuple[bytes, str], ...]
 
 
 @dataclass(frozen=True)
@@ -27,4 +28,5 @@ class LLM(Protocol):
         system: str,
         user: str,
         schema: type[Schema],
+        images: Images = (),
     ) -> LLMResult: ...

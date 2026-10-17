@@ -1,6 +1,6 @@
 import re
 
-from config.roles import MAX_VARIANTS
+from config.roles import MAX_VARIANTS, RESEARCH_MODE_ENABLED
 from crocol.application.agent.schemas import Analysis
 from crocol.application.agent.state import (
     AgentDeps,
@@ -52,6 +52,10 @@ async def analyze(state: AgentState, deps: AgentDeps) -> tuple[dict, dict]:
     if analysis is None:
         analysis = fallback_analysis(question)
 
+    requested_mode = analysis.mode
+    mode = requested_mode if RESEARCH_MODE_ENABLED else "quick"
+    if state.get("image"):
+        mode = "quick"
     variants = unique_variants(question, analysis.variants)
     strategy = strategy_of(
         variants,
@@ -61,24 +65,27 @@ async def analyze(state: AgentState, deps: AgentDeps) -> tuple[dict, dict]:
     )
     update = {
         "language": analysis.language,
-        "mode": analysis.mode,
+        "mode": mode,
         "intents": analysis.intents,
         "corpus_scope": analysis.corpus_scope,
         "chunk_policy": analysis.chunk_policy,
         "query_type": analysis.query_type,
         "query_variants": variants,
         "bm25_query": analysis.bm25_query,
+        "places": [place.model_dump() for place in analysis.places[:3]],
         "strategies": [strategy],
         "llm_calls": 1,
         "llm_usage": [usage],
     }
     summary = {
-        "mode": analysis.mode,
+        "mode": mode,
+        "requested_mode": requested_mode,
         "intents": analysis.intents,
         "corpus_scope": analysis.corpus_scope,
         "chunk_policy": analysis.chunk_policy,
         "query_type": analysis.query_type,
         "variants": len(variants),
+        "places": len(analysis.places),
         "fallback": fallback,
     }
     return update, summary

@@ -8,6 +8,7 @@ from langgraph.graph.state import CompiledStateGraph
 from config.roles import NODE_TIMEOUT_S
 from crocol.application.agent import routing
 from crocol.application.agent.nodes.analyze import analyze
+from crocol.application.agent.nodes.evaluate import conflict_check
 from crocol.application.agent.nodes.fuse import fuse
 from crocol.application.agent.nodes.grade import grade
 from crocol.application.agent.nodes.rerank import rerank
@@ -20,9 +21,12 @@ from crocol.application.agent.nodes.retrieve import (
 from crocol.application.agent.nodes.rewrite import rewrite
 from crocol.application.agent.nodes.synthesize import revise, synthesize
 from crocol.application.agent.nodes.verify import verify
+from crocol.application.agent.nodes.vision import retrieve_vision
+from crocol.application.agent.research import investigate, merge, plan
 from crocol.application.agent.state import AgentDeps, AgentState
 from crocol.domains.models.traces import TraceEvent
 
+# State, Deps -> Update, Summary
 NodeFn = Callable[[AgentState, AgentDeps], Awaitable[tuple[dict, dict]]]
 Runner = Callable[[AgentState], Awaitable[dict]]
 
@@ -31,6 +35,7 @@ NODES: dict[str, NodeFn] = {
     "retrieve_text": retrieve_text,
     "retrieve_spatial": retrieve_spatial,
     "retrieve_graph": retrieve_graph,
+    "retrieve_vision": retrieve_vision,
     "fuse": fuse,
     "rerank": rerank,
     "grade": grade,
@@ -40,6 +45,10 @@ NODES: dict[str, NodeFn] = {
     "revise": revise,
     "abstain": abstain,
     "finalize": finalize,
+    "plan": plan,
+    "investigate": investigate,
+    "merge": merge,
+    "conflict_check": conflict_check,
 }
 
 
@@ -51,32 +60,49 @@ def bind(name: str, node: NodeFn, deps: AgentDeps) -> Runner:
     """Wrap a node with timing, a timeout and a trace event."""
 
     async def run(state: AgentState) -> dict:
+        
         started = time.perf_counter()
         try:
             update, summary = await asyncio.wait_for(
                 node(state, deps), timeout=NODE_TIMEOUT_S)
             status = summary.pop("status", "ok")
+            
         except TimeoutError:
             update, summary, status = {"partial": True}, {}, "timeout"
             update["errors"] = [f"{name}: timeout"]
         except Exception as exc:
             update, summary, status = {"partial": True}, {}, "error"
             update["errors"] = [f"{name}: {type(exc).__name__}"]
-        event = TraceEvent(name, status, elapsed_ms(started), summary)
+            
+        event = TraceEvent(name, status,
+                           elapsed_ms(started),
+                           summary)
+        
         return {**update, "trace": [event]}
 
     return run
 
 
 def build_graph(deps: AgentDeps) -> CompiledStateGraph:
-    """Quick-mode graph: retrieve, grade, retry or abstain, answer, verify."""
+    """Quick loop plus the research fan-out (plan, investigate, merge)."""
     graph = StateGraph(AgentState)
+    
     for name, node in NODES.items():
         graph.add_node(name, bind(name, node, deps))
 
     retrievers = list(routing.RETRIEVERS)
     graph.add_edge(START, "analyze")
-    graph.add_conditional_edges("analyze", routing.after_analyze, retrievers)
+    graph.add_conditional_edges("analyze",
+                                routing.after_analyze,
+                                [*retrievers, "plan"])
+    graph.add_conditional_edges("plan", routing.after_plan, ["investigate"])
+    graph.add_edge("investigate", "merge")
+    graph.add_conditional_edges(
+        "merge",
+        routing.after_merge,
+        ["conflict_check", "synthesize", "abstain", "finalize"],
+    )
+    graph.add_edge("conflict_check", "synthesize")
     graph.add_edge(retrievers, "fuse")
     graph.add_edge("fuse", "rerank")
     graph.add_edge("rerank", "grade")
@@ -86,7 +112,9 @@ def build_graph(deps: AgentDeps) -> CompiledStateGraph:
         ["synthesize", "rewrite", "abstain", "finalize"],
     )
     graph.add_conditional_edges(
-        "rewrite", routing.after_rewrite, [*retrievers, "abstain"])
+        "rewrite", routing.after_rewrite, 
+        [*retrievers, "abstain"]
+        )
     graph.add_edge("synthesize", "verify")
     graph.add_conditional_edges(
         "verify",
@@ -96,4 +124,5 @@ def build_graph(deps: AgentDeps) -> CompiledStateGraph:
     graph.add_edge("revise", "verify")
     graph.add_edge("abstain", "finalize")
     graph.add_edge("finalize", END)
+    
     return graph.compile()

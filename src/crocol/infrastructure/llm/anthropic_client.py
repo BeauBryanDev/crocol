@@ -1,7 +1,9 @@
+import base64
+
 from anthropic import AsyncAnthropic
 from pydantic import BaseModel
 
-from crocol.application.ports.llm import LLMResult
+from crocol.application.ports.llm import Images, LLMResult
 
 FAILED_STOPS = ("max_tokens", "refusal", "model_context_window_exceeded")
 
@@ -23,14 +25,21 @@ class AnthropicLLM:
                        system: str,
                        user: str,
                        schema: type[BaseModel],
-                       max_tokens: int
+                       max_tokens: int,
+                       images: Images = ()
                        ) -> LLMResult:
         """One structured call; a truncated or refused output parses to None."""
+        content: list[dict] = []
+        for data, mime in images:
+            content.append({"type": "image", "source": {
+                "type": "base64", "media_type": mime,
+                "data": base64.b64encode(data).decode("ascii")}})
+        content.append({"type": "text", "text": user})
         response = await self._client.messages.parse(
             model=model,
             max_tokens=max_tokens,
             system=system,
-            messages=[{"role": "user", "content": user}],
+            messages=[{"role": "user", "content": content}],
             output_format=schema,
         )
 
