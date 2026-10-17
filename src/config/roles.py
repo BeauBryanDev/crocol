@@ -13,11 +13,13 @@ MODELS = {
     "grade": GEMINI_FLASH,
     "verify": GEMINI_FLASH,
     "conflict": GEMINI_FLASH,
+    "vision": GEMINI_FLASH,
 }
 FALLBACKS = {
     "grade": HAIKU,
     "verify": HAIKU,
     "conflict": HAIKU,
+    "vision": HAIKU,
 }
 MAX_OUTPUT_TOKENS = {
     "analyze": 800,
@@ -28,6 +30,7 @@ MAX_OUTPUT_TOKENS = {
     "grade": 1200,
     "verify": 2500,
     "conflict": 2500,
+    "vision": 1400,
 }
 
 MAX_ATTEMPTS = 2
@@ -49,6 +52,10 @@ TOTAL_TIMEOUT_S = {
     "research": 180.0,
 }
 RECURSION_LIMIT = 40
+VISION_LLM_CALLS = 1
 
 RERANK_ENABLED = False
 ALLOW_GENERAL_KNOWLEDGE = False
+RESEARCH_MODE_ENABLED = True
+RESEARCH_RESERVED_CALLS = 3
+CONFLICT_PROPERTIES = ("toc", "tmax", "ro", "thickness", "porosity")
