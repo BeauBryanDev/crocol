@@ -1,4 +1,3 @@
-import csv
 import hashlib
 import json
 from collections import Counter
@@ -7,12 +6,10 @@ from typing import Any
 
 from psycopg.types.json import Jsonb
 
-from chunking import PIPELINE_VERSION, load_metadata, short_citation
-from config.settings import ROOT
+from chunking import PIPELINE_VERSION, load_volumes, short_citation
+from config.settings import CORPUS_VOLUMES, ROOT
 from embeddings import content_hash
 
-METADATA = ROOT / "corpus_metadata.yaml"
-MANIFEST = ROOT / "markdown" / "manifest.csv"
 CHUNKS = ROOT / "chunks" / "chunks.jsonl"
 EMBED_INDEX = ROOT / "chunks" / "embeddings_index.json"
 REFERENCES = ROOT / "chunks" / "references"
@@ -31,6 +28,7 @@ DEGREES = {
     "master": "Master's thesis",
     "phd": "Doctoral thesis",
     "doctoral": "Doctoral thesis",
+    "specialization": "Specialization monograph",
 }
 MAX_ERRORS = 50
 
@@ -106,7 +104,7 @@ def document_row(source_path: str, meta: dict, entry: dict) -> dict:
         "legal": legal_of(meta),
         "citation": short_citation(meta),
         "reference": reference_of(meta),
-        "markdown_path": f"markdown/{entry['markdown']}",
+        "markdown_path": f"{entry['volume'].name}/{entry['markdown']}",
         "sha256": entry["sha256"],
         "pages": int(pages) if pages else None,
     }
@@ -202,9 +200,7 @@ def validate(metadata: dict, manifest: dict, records: list[dict],
 
 
 def read_inputs() -> tuple[dict, dict, list[dict], dict, dict[str, Any]]:
-    metadata = load_metadata(METADATA)
-    with MANIFEST.open(encoding="utf-8", newline="") as handle:
-        manifest = {row["source_path"]: row for row in csv.DictReader(handle)}
+    metadata, manifest = load_volumes(CORPUS_VOLUMES)
     with CHUNKS.open(encoding="utf-8") as handle:
         records = [json.loads(line) for line in handle]
     embed_index = json.loads(EMBED_INDEX.read_text(encoding="utf-8"))

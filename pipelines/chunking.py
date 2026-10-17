@@ -29,9 +29,9 @@ from pathlib import Path
 
 import yaml
 
+from config.settings import CORPUS_VOLUMES, PIPELINE_VERSION
 from crocol.domains.services.lexical import normalize_lexical
 
-PIPELINE_VERSION = "chunk-v1"
 CHARS_PER_TOKEN = 3.8
 TARGET_TOKENS = 750
 MAX_TOKENS = 900
@@ -377,6 +377,23 @@ def load_metadata(path):
     return docs
 
 
+def load_volumes(volumes):
+    metadata, manifest = {}, {}
+    for markdown_dir, metadata_path in volumes:
+        volume_meta = load_metadata(metadata_path)
+        with (markdown_dir / "manifest.csv").open(encoding="utf-8") as handle:
+            volume_rows = {r["source_path"]: {**r, "volume": markdown_dir} for r in csv.DictReader(handle)}
+        clash = sorted((set(volume_meta) | set(volume_rows)) & (set(metadata) | set(manifest)))
+        if clash:
+            sys.exit(f"source_path in more than one volume: {clash}")
+        missing = sorted(set(volume_rows) - set(volume_meta))
+        if missing:
+            sys.exit(f"documents missing from {metadata_path}: {missing}")
+        metadata.update(volume_meta)
+        manifest.update(volume_rows)
+    return metadata, manifest
+
+
 def short_citation(meta):
     authors = meta.get("authors") or []
     if authors:
@@ -457,17 +474,17 @@ def build_records(source_path, meta, chunks):
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--markdown", type=Path, default=Path("markdown"))
-    parser.add_argument("--metadata", type=Path, default=Path("corpus_metadata.yaml"))
+    parser.add_argument("--markdown", type=Path, help="one volume only (default: all CORPUS_VOLUMES)")
+    parser.add_argument("--metadata", type=Path, help="metadata for --markdown")
     parser.add_argument("--out", type=Path, default=Path("chunks"))
     parser.add_argument("--only", help="chunk a single source_path")
     args = parser.parse_args()
 
-    metadata = load_metadata(args.metadata)
-    manifest = {r["source_path"]: r for r in csv.DictReader((args.markdown / "manifest.csv").open(encoding="utf-8"))}
-    missing = sorted(set(manifest) - set(metadata))
-    if missing:
-        sys.exit(f"documents missing from {args.metadata}: {missing}")
+    if args.markdown:
+        volumes = [(args.markdown, args.metadata or Path("corpus_metadata.yaml"))]
+    else:
+        volumes = list(CORPUS_VOLUMES)
+    metadata, manifest = load_volumes(volumes)
     (args.out / "references").mkdir(parents=True, exist_ok=True)
 
     targets = [args.only] if args.only else sorted(manifest)
@@ -482,7 +499,7 @@ def main():
                 report.append(row)
                 total["docs_excluded"] += 1
                 continue
-            md_path = args.markdown / manifest[source_path]["markdown"]
+            md_path = manifest[source_path]["volume"] / manifest[source_path]["markdown"]
             chunker = DocumentChunker(meta, md_path.read_text(encoding="utf-8"))
             records = build_records(source_path, meta, chunker.run())
             for record in records:
