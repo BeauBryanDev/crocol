@@ -22,6 +22,14 @@ class PlaceMention(BaseModel):
     kind: Literal["municipality", "field", "well", "fault", "unknown"]
 
 
+class EntityMention(BaseModel):
+    name: str
+    kind: Literal["formation", "member", "group", "field", "well",
+                  "municipality", "organization", "fault", "contract_area",
+                  "seismic_3d", "person", "document", "topic", "regulation",
+                  "basin", "unknown"]
+
+
 class Analysis(BaseModel):
     language: Literal["es", "en"]
     mode: Literal["quick", "research"]
@@ -32,6 +40,7 @@ class Analysis(BaseModel):
     variants: list[str]
     bm25_query: str | None = None
     places: list[PlaceMention] = []
+    entities: list[EntityMention] = []
 
 
 class VisualDiagnosis(BaseModel):

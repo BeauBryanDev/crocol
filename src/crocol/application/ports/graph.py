@@ -1,9 +1,8 @@
 from typing import Protocol
 
+from crocol.domains.models.graphs import GraphResult
+
 
 class GraphSearch(Protocol):
-    async def evidence_chunks(
-        self,
-        entity_ids: list[int],
-        limit: int,
-    ) -> list[str]: ...
+    async def run(self, function: str,
+                  arguments: dict) -> GraphResult: ...
