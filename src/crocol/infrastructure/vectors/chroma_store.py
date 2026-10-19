@@ -35,7 +35,9 @@ RESULT_FIELDS = [
 
 
 def chroma_client() -> Any:
+    
     settings = get_settings()
+    
     return chromadb.CloudClient(
         tenant=settings.chroma_tenant,
         database=settings.chroma_database,
@@ -45,6 +47,7 @@ def chroma_client() -> Any:
 
 
 @lru_cache(maxsize=256)
+
 def dense_query(query: str) -> tuple[float, ...]:
     return tuple(embed_query(query).tolist())
 
