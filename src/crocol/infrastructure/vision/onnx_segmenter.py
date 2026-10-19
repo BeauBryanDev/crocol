@@ -61,45 +61,61 @@ def decode(image_bytes: bytes) -> np.ndarray:
     return np.asarray(image, dtype=np.uint8)
 
 
-def tile_starts(length: int, tile: int, stride: int) -> list[int]:
+def tile_starts(length: int,
+                tile: int, 
+                stride: int) -> list[int]:
 
     if length <= tile:
         return [0]
+    
     starts = list(range(0, length - tile + 1, stride))
+    
     if starts[-1] != length - tile:
         starts.append(length - tile)
+        
     return starts
 
 
-def clear_border(mask: np.ndarray, pixels: int) -> np.ndarray:
+def clear_border(mask: np.ndarray,
+                 pixels: int) -> np.ndarray:
     """Drop a thin frame where the model reacts to the image edge."""
     cleared = mask.copy()
     if pixels > 0:
         cleared[:pixels, :] = cleared[-pixels:, :] = False
         cleared[:, :pixels] = cleared[:, -pixels:] = False
+        
     return cleared
 
 
-def remove_specks(mask: np.ndarray, min_pixels: int) -> np.ndarray:
+def remove_specks(mask: np.ndarray, 
+                  min_pixels: int) -> np.ndarray:
 
-    labels, count = ndimage.label(mask, structure=EIGHT_CONNECTED)
+    labels, count = ndimage.label(mask, 
+                                  structure=EIGHT_CONNECTED)
     if not count:
         return mask
+    
     sizes = np.bincount(labels.ravel())
     keep = sizes >= min_pixels
     keep[0] = False
+    
     return keep[labels]
 
 
-def overlay_webp(rgb: np.ndarray, mask: np.ndarray) -> bytes:
+def overlay_webp(rgb: np.ndarray,
+                 mask: np.ndarray) -> bytes:
     """Cracks painted red over the photo, as a compact WebP."""
     blended = rgb.astype(np.float32)
     blended[mask] = ((1 - OVERLAY_ALPHA) * blended[mask]
                      + OVERLAY_ALPHA * CRACK_RGB)
+    
     image = Image.fromarray(blended.clip(0, 255).astype(np.uint8))
     image.thumbnail((OVERLAY_MAX_SIDE, OVERLAY_MAX_SIDE))
     buffer = io.BytesIO()
-    image.save(buffer, format="WEBP", quality=OVERLAY_QUALITY, method=4)
+    
+    image.save(buffer, format="WEBP",
+               quality=OVERLAY_QUALITY, method=4)
+    
     return buffer.getvalue()
 
 
@@ -141,6 +157,7 @@ class OnnxCrackAnalyzer:
         options = ort.SessionOptions()
         options.intra_op_num_threads = VISION_THREADS
         options.inter_op_num_threads = 1
+        
         return ort.InferenceSession(str(self._model_path), options,
                                     providers=["CPUExecutionProvider"])
 
@@ -162,12 +179,19 @@ class OnnxCrackAnalyzer:
 
         logits = np.zeros(padded.shape[:2], dtype=np.float32)
         counts = np.zeros(padded.shape[:2], dtype=np.float32)
+        
         for start in range(0, len(boxes), VISION_BATCH):
+            
             batch = boxes[start:start + VISION_BATCH]
             tensor = np.stack([self.normalize(
-                padded[r:r + tile, c:c + tile]) for r, c in batch])
+                padded[r:r + tile, c:c + tile]
+                ) for r, c in batch]
+                              )
+            
             output = self.session.run(None, {self._input: tensor})[0]
+            
             for (r, c), tile_logits in zip(batch, output[:, 0]):
+                
                 logits[r:r + tile, c:c + tile] += tile_logits
                 counts[r:r + tile, c:c + tile] += 1
 
@@ -186,6 +210,7 @@ class OnnxCrackAnalyzer:
         crack_pixels = probability[mask]
         near = np.abs(crack_pixels - self._threshold) < AMBIGUITY_BAND
         metrics = measure(mask)
+        
         report = CrackReport(
             model=f"{VISION_LABEL} v{self._version}".strip(),
             threshold=self._threshold,

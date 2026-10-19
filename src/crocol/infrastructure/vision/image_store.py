@@ -19,6 +19,7 @@ class LocalImageStore:
     def path_for(self, trace_id: str) -> Path:
         """Only canonical UUIDs become file names (no path tricks)."""
         canonical = str(uuid.UUID(trace_id))
+        
         return self._directory / f"{canonical}.jpg"
 
     def save(self, trace_id: str, jpeg: bytes) -> Path:
@@ -26,6 +27,7 @@ class LocalImageStore:
         self._directory.mkdir(parents=True, exist_ok=True)
         target = self.path_for(trace_id)
         target.write_bytes(jpeg)
+        
         return target
 
     def purge(self, now: float | None = None) -> int:
@@ -35,8 +37,11 @@ class LocalImageStore:
 
         cutoff = (now if now is not None else time.time()) - self._retention_s
         removed = 0
+        
         for path in self._directory.glob("*.jpg"):
+            
             if path.stat().st_mtime < cutoff:
                 path.unlink(missing_ok=True)
                 removed += 1
+                
         return removed

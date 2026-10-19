@@ -22,6 +22,7 @@ def square_crop(mask: np.ndarray) -> np.ndarray:
     side = max(crop.shape)
     square = np.zeros((side, side), dtype=bool)
     square[:crop.shape[0], :crop.shape[1]] = crop
+    
     return square
 
 
@@ -34,6 +35,7 @@ def fractal_dimension(mask: np.ndarray) -> tuple[float, float]:
     side = square.shape[0]
     sizes, counts = [], []
     size = 2
+    
     while size <= side // 4:
         cells = side // size * size
         blocks = square[:cells, :cells].reshape(
@@ -49,10 +51,12 @@ def fractal_dimension(mask: np.ndarray) -> tuple[float, float]:
 
     x = np.log(1.0 / np.asarray(sizes, dtype=float))
     y = np.log(np.asarray(counts, dtype=float))
+    
     slope, intercept = np.polyfit(x, y, 1)
     residual = y - (slope * x + intercept)
     total = float(((y - y.mean()) ** 2).sum())
     r2 = 1.0 - float((residual ** 2).sum()) / total if total else 0.0
+    
     return float(slope), r2
 
 
@@ -77,11 +81,13 @@ def principal_angle(rows: np.ndarray,
     vx, vy = vectors[:, -1]
     angle = math.degrees(math.atan2(vy, vx)) % 180.0
     elongation = 1.0 - max(values[0], 0.0) / values[-1]
+    
     return angle, elongation
 
 
 def component_angles(labels: np.ndarray, count: int,
-                     ridge: np.ndarray) -> list[tuple[float, float]]:
+                     ridge: np.ndarray
+                     ) -> list[tuple[float, float]]:
     """(angle, weight) per crack; weight = centerline length x elongation."""
     lengths = np.bincount(labels[ridge], minlength=count + 1)
     found = []
@@ -96,6 +102,7 @@ def component_angles(labels: np.ndarray, count: int,
         weight = float(lengths[index]) * elongation
         if weight > 0:
             found.append((angle, weight))
+            
     return found
 
 
@@ -112,11 +119,13 @@ def mean_axial(angles: list[tuple[float, float]]) -> float:
     """Weighted mean of axial angles (doubled-angle circular mean)."""
     sx = sum(w * math.cos(math.radians(2 * a)) for a, w in angles)
     sy = sum(w * math.sin(math.radians(2 * a)) for a, w in angles)
+    
     return (math.degrees(math.atan2(sy, sx)) / 2) % 180.0
 
 
 def dominant_angles(angles: list[tuple[float, float]],
-                    rose: list[float]) -> list[tuple[float, float]]:
+                    rose: list[float]
+                    ) -> list[tuple[float, float]]:
     """Up to 3 peaks of the rose, each as (mean angle, share)."""
     peaks = []
     for b, share in enumerate(rose):
@@ -127,15 +136,21 @@ def dominant_angles(angles: list[tuple[float, float]],
 
     found = []
     for _, b in sorted(peaks, reverse=True)[:MAX_DOMINANT]:
+        
         near = {(b - 1) % ROSE_BINS, b, (b + 1) % ROSE_BINS}
+        
         members = [(a, w) for a, w in angles
                    if int(a // BIN_DEG) % ROSE_BINS in near]
+        
         share = sum(rose[i] for i in near)
-        found.append((round(mean_axial(members), 1), round(share, 3)))
+        found.append((round(mean_axial(members), 1),
+                      round(share, 3)))
+        
     return found
 
 
-def level_of(value: float, edges: tuple[float, ...]) -> int:
+def level_of(value: float, 
+            edges: tuple[float, ...]) -> int:
 
     return bisect_right(edges, value)
 
@@ -144,6 +159,7 @@ def severity_of(density_pct: float, fractal: float) -> str:
     """Heuristic class; not an engineering standard."""
     density_level = level_of(density_pct, DENSITY_LEVELS)
     fractal_level = level_of(fractal, FRACTAL_LEVELS)
+    
     return SEVERITIES[math.ceil((density_level + fractal_level) / 2)]
 
 
@@ -157,6 +173,7 @@ def measure(mask: np.ndarray) -> dict:
     widths = 2 * distance[ridge] - 1
     angles = component_angles(labels, count, ridge)
     rose = rose_of(angles)
+    
     return {
         "density_pct": round(density, 3),
         "fractal_dimension": round(fractal, 3),
