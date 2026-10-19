@@ -5,7 +5,7 @@ from collections.abc import Awaitable, Callable
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
-from config.roles import NODE_TIMEOUT_S
+from config.roles import NODE_TIMEOUT_S, NODE_TIMEOUTS, OPTIONAL_NODES
 from crocol.application.agent import routing
 from crocol.application.agent.nodes.analyze import analyze
 from crocol.application.agent.nodes.evaluate import conflict_check
@@ -15,6 +15,7 @@ from crocol.application.agent.nodes.rerank import rerank
 from crocol.application.agent.nodes.response import abstain, finalize
 from crocol.application.agent.nodes.retrieve import (
     retrieve_graph,
+    retrieve_production,
     retrieve_spatial,
     retrieve_text,
 )
@@ -35,6 +36,7 @@ NODES: dict[str, NodeFn] = {
     "retrieve_text": retrieve_text,
     "retrieve_spatial": retrieve_spatial,
     "retrieve_graph": retrieve_graph,
+    "retrieve_production": retrieve_production,
     "retrieve_vision": retrieve_vision,
     "fuse": fuse,
     "rerank": rerank,
@@ -56,6 +58,15 @@ def elapsed_ms(started: float) -> int:
     return int((time.perf_counter() - started) * 1000)
 
 
+def failed(name: str, reason: str) -> tuple[dict, dict, str]:
+    """A crashed or timed-out node; optional ones never make it partial."""
+    update: dict = {"errors": [f"{name}: {reason}"]}
+    if name not in OPTIONAL_NODES:
+        update["partial"] = True
+    status = "timeout" if reason == "timeout" else "error"
+    return update, {}, status
+
+
 def bind(name: str, node: NodeFn, deps: AgentDeps) -> Runner:
     """Wrap a node with timing, a timeout and a trace event."""
 
@@ -64,16 +75,15 @@ def bind(name: str, node: NodeFn, deps: AgentDeps) -> Runner:
         started = time.perf_counter()
         try:
             update, summary = await asyncio.wait_for(
-                node(state, deps), timeout=NODE_TIMEOUT_S)
+                node(state, deps),
+                timeout=NODE_TIMEOUTS.get(name, NODE_TIMEOUT_S))
             status = summary.pop("status", "ok")
             
         except TimeoutError:
-            update, summary, status = {"partial": True}, {}, "timeout"
-            update["errors"] = [f"{name}: timeout"]
+            update, summary, status = failed(name, "timeout")
         except Exception as exc:
-            update, summary, status = {"partial": True}, {}, "error"
-            update["errors"] = [f"{name}: {type(exc).__name__}"]
-            
+            update, summary, status = failed(name, type(exc).__name__)
+
         event = TraceEvent(name, status,
                            elapsed_ms(started),
                            summary)
@@ -112,8 +122,8 @@ def build_graph(deps: AgentDeps) -> CompiledStateGraph:
         ["synthesize", "rewrite", "abstain", "finalize"],
     )
     graph.add_conditional_edges(
-        "rewrite", routing.after_rewrite, 
-        [*retrievers, "abstain"]
+        "rewrite", routing.after_rewrite,
+        [*retrievers, "synthesize", "abstain"]
         )
     graph.add_edge("synthesize", "verify")
     graph.add_conditional_edges(
