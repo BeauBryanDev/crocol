@@ -1,9 +1,18 @@
 import re
 from collections.abc import Iterable, Mapping
 
-LABEL_GROUP_RE = re.compile(r"\[(C\d+(?:\s*,\s*C\d+)*)\]")
-LABEL_RE = re.compile(r"C\d+")
+KG = "KG"
+LABEL = r"(?:C\d+|KG)"
+LABEL_GROUP_RE = re.compile(rf"\[({LABEL}(?:\s*,\s*{LABEL})*)\]")
+LABEL_RE = re.compile(rf"\b{LABEL}\b")
+SENTENCE_RE = re.compile(r"(?<=[.!?])\s+|\n+")
+SUGGESTIONS_RE = re.compile(
+    r"^\s*#{1,6}\s*(?:investigaci[oó]n sugerida|suggested further work)\b",
+    re.I | re.M)
+LABEL_ONLY_RE = re.compile(rf"^\s*\[{LABEL}(?:\s*,\s*{LABEL})*\][.!?]?\s*$")
 
+# Citation markers
+CITATION_RE = re.compile(r"\b(C\d+)\b")
 
 def page_span(start: int, end: int) -> str:
     
@@ -52,8 +61,36 @@ def normalize_labels(items: Iterable[str]) -> list[str]:
     return labels
 
 
+def sentences(text: str) -> list[str]:
+    """Sentences, with a trailing 'text. [KG]' label kept on its sentence."""
+    out: list[str] = []
+    for part in SENTENCE_RE.split(text):
+        if out and LABEL_ONLY_RE.match(part):
+            out[-1] = f"{out[-1]} {part}"
+        else:
+            out.append(part)
+    return out
+
+
+def without_suggestions(text: str) -> str:
+    """The answer before its 'Investigación sugerida' section."""
+    found = SUGGESTIONS_RE.search(text)
+    return text[:found.start()].rstrip() if found else text
+
+
+def corpus_text(text: str) -> str:
+    """Checkable text: no suggestions section, no [KG]-only sentences."""
+    kept = []
+    for sentence in sentences(without_suggestions(text)):
+        labels = cited_labels(sentence)
+        if labels and set(labels) == {KG}:
+            continue
+        kept.append(sentence)
+    return " ".join(part for part in kept if part.strip())
+
+
 def inner(rendered: str) -> str:
-    
+    # Remove outer parentheses from a citation group, if present.
     return rendered[1:-1] if rendered.startswith("(") else rendered
 
 
