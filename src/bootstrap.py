@@ -2,48 +2,56 @@ import os
 
 os.environ["LANGSMITH_TRACING"] = "false"
 os.environ["LANGCHAIN_TRACING_V2"] = "false"
+# The simulator's banded solves are too small to gain from BLAS threads.
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 
-from langgraph.graph.state import CompiledStateGraph  # noqa: E402
-from psycopg_pool import AsyncConnectionPool  # noqa: E402
+from langgraph.graph.state import CompiledStateGraph  
+from psycopg_pool import AsyncConnectionPool  
 
-from config.roles import (  # noqa: E402
+from config.roles import ( : E402
     LLM_HTTP_TIMEOUT_S,
     RERANK_ENABLED,
     RERANK_MAX_CHARS,
     RERANK_MODEL,
     RERANK_TIMEOUT_S,
 )
-from config.settings import get_settings  # noqa: E402
-from crocol.application.agent.graph import build_graph  # noqa: E402
-from crocol.application.agent.state import AgentDeps  # noqa: E402
-from crocol.application.usecases.ask_questions import (  # noqa: E402
+from config.settings import get_settings   
+from crocol.application.agent.graph import build_graph  
+from crocol.application.agent.state import AgentDeps  
+from crocol.application.usecases.ask_questions import (  
     AskQuestion,
 )
-from crocol.application.usecases.get_trace import GetTrace  # noqa
-from crocol.infrastructure.llm.anthropic_client import AnthropicLLM  # noqa
-from crocol.infrastructure.llm.gemini_client import GeminiLLM  # noqa: E402
-from crocol.infrastructure.llm.role_router import RoleRouter  # noqa: E402
-from crocol.infrastructure.repository.documents import (  # noqa: E402
+from crocol.application.tools.well_simulation import (  
+    SimulationRunner,
+)
+from crocol.application.usecases.get_trace import GetTrace 
+from crocol.infrastructure.llm.anthropic_client import AnthropicLLM 
+from crocol.infrastructure.llm.gemini_client import GeminiLLM  
+from crocol.infrastructure.llm.role_router import RoleRouter  
+from crocol.infrastructure.repository.documents import (  
     PgDocumentStore,
 )
-from crocol.infrastructure.reranker import CohereReranker  # noqa: E402
-from crocol.infrastructure.repository.graphs import (  # noqa: E402
+from crocol.infrastructure.reranker import CohereReranker  
+from crocol.infrastructure.repository.graphs import (  
     PgGraphStore,
 )
-from crocol.infrastructure.repository.pool import build_pool  # noqa
-from crocol.infrastructure.repository.productions import (  # noqa: E402
+from crocol.infrastructure.repository.pool import build_pool 
+from crocol.infrastructure.repository.productions import (  
     PgProductionStore,
 )
-from crocol.infrastructure.repository.spatials import (  # noqa: E402
+from crocol.infrastructure.repository.spatials import (  
     PgSpatialStore,
 )
-from crocol.infrastructure.repository.traces import (  # noqa: E402
+from crocol.infrastructure.repository.traces import (  
     PgTraceStore,
 )
-from crocol.infrastructure.vectors.chroma_store import (  # noqa: E402
+from crocol.infrastructure.simulation.adapter import (  
+    NumericWellSimulator,
+)
+from crocol.infrastructure.vectors.chroma_store import (  
     ChromaVectorStore,
 )
-from crocol.infrastructure.vision.onnx_segmenter import (  # noqa: E402
+from crocol.infrastructure.vision.onnx_segmenter import (  
     OnnxCrackAnalyzer,
 )
 
@@ -90,7 +98,8 @@ def build_deps(pool: AsyncConnectionPool | None = None) -> AgentDeps:
                      graph=graph,
                      vision=OnnxCrackAnalyzer(),
                      reranker=build_reranker(),
-                     production=production)
+                     production=production,
+                     simulation=SimulationRunner(NumericWellSimulator()))
 
 
 def build_agent(pool: AsyncConnectionPool | None = None) -> CompiledStateGraph:

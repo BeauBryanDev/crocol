@@ -14,6 +14,7 @@ MODELS = {
     "verify": GEMINI_FLASH,
     "conflict": GEMINI_FLASH,
     "vision": GEMINI_FLASH,
+    "interpret": HAIKU,
 }
 FALLBACKS = {
     "grade": HAIKU,
@@ -31,6 +32,7 @@ MAX_OUTPUT_TOKENS = {
     "verify": 6000,
     "conflict": 2500,
     "vision": 1400,
+    "interpret": 6000,
 }
 
 MAX_ATTEMPTS = 2
@@ -57,6 +59,8 @@ NODE_TIMEOUTS = {
     "verify": CHECKER_TIMEOUT_S,
     "conflict_check": CHECKER_TIMEOUT_S,
     "investigate": 45.0,
+    "simulate": 40.0,
+    "interpret": 60.0,
 }
 INVESTIGATE_GRADE_TIMEOUT_S = 25.0
 UNGRADED_EVIDENCE = 6

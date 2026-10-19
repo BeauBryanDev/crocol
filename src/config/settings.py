@@ -72,7 +72,25 @@ MAX_CONCURRENT_RUNS = 2
 RUN_WAIT_S = 10.0
 MAX_REQUEST_BYTES = 11 * 1024 * 1024
 
+WELLSIM_LABEL = "Crocol-WellSim-2026"
+WELLSIM_MAX_NR = 50
+WELLSIM_MAX_NZ = 20
+WELLSIM_MAX_NT = 365
+WELLSIM_MAX_N_RATE = 12
+WELLSIM_MAX_N_BHP = 10
+WELLSIM_THETA = 1.0
+WELLSIM_MAX_POINTS = 200
+WELLSIM_CURVE_DIGITS = 4
+WELLSIM_RUN_TIMEOUT_S = 10.0
+WELLSIM_SWEEP_TIMEOUT_S = 30.0
+WELLSIM_WAIT_S = 5.0
+WELLSIM_RUNS_PER_MINUTE = 10
+WELLSIM_SWEEPS_PER_DAY = 20
 
+# Global Settings config file path
+GLOBAL_SETTINGS_PATH = ROOT / "global_settings.yaml"
+
+# Global Settings class
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=ROOT / ".env",

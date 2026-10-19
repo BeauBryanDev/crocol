@@ -65,3 +65,18 @@ class UnavailableError(CrocolError):
 
     status_code = 503
     public_message = "this feature is not available right now"
+
+
+class SimulationInputError(CrocolError, ValueError):
+    status_code = 422
+    public_message = "the well parameters are not valid"
+
+
+class SimulatorBusyError(CrocolError):
+    status_code = 429
+    public_message = "the well simulator is busy; try again in a few seconds"
+
+
+class SimulationTimeoutError(CrocolError):
+    status_code = 503
+    public_message = "the simulation took too long; use a smaller grid"
