@@ -16,3 +16,4 @@ class Answer:
     conflicts: tuple[dict, ...] = field(default_factory=tuple)
     partial: bool = False
     overlay_webp: bytes = b""
+    production: tuple[dict, ...] = field(default_factory=tuple)
