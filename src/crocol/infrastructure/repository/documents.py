@@ -15,7 +15,7 @@ class PgDocumentStore:
         self._pool = pool
 
     async def get_many(self, doc_ids: list[str]) -> dict[str, Document]:
-
+        # Return a mapping of doc_id to Document for the given list of doc_ids.
         if not doc_ids:
             return {}
 
@@ -25,6 +25,7 @@ class PgDocumentStore:
 
         documents = {}
         for doc_id, citation, reference, title, doc_type, scope, year in rows:
+            
             documents[doc_id] = Document(
                 doc_id=doc_id,
                 citation=citation,
