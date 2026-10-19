@@ -9,6 +9,8 @@ from crocol.application.agent.schemas import Prompt, load_prompt
 from crocol.application.ports.documents import DocumentStore
 from crocol.application.ports.graph import GraphSearch
 from crocol.application.ports.llm import LLM, Images, LLMResult
+from crocol.application.ports.production import ProductionSearch
+from crocol.application.ports.reranker import Reranker
 from crocol.application.ports.spatial import SpatialSearch
 from crocol.application.ports.vector_search import VectorSearch
 from crocol.application.ports.vision import CrackAnalyzer
@@ -45,6 +47,8 @@ class AgentState(TypedDict, total=False):
     query_variants: list[str]
     bm25_query: str | None
     places: list[dict]
+    production: list[dict]
+    entities: list[dict]
     channels: Annotated[dict[str, ChannelResult], merge_channels]
     chunks: list[Chunk]
     evidence: list[Chunk]
@@ -79,6 +83,8 @@ class AgentDeps:
     spatial: SpatialSearch | None = None
     graph: GraphSearch | None = None
     vision: CrackAnalyzer | None = None
+    reranker: Reranker | None = None
+    production: ProductionSearch | None = None
 
 
 def initial_state(question: str,
@@ -93,6 +99,8 @@ def initial_state(question: str,
         "query_variants": [question],
         "bm25_query": None,
         "places": [],
+        "production": [],
+        "entities": [],
         "channels": {},
         "chunks": [],
         "evidence": [],
@@ -164,6 +172,27 @@ async def ask(
     prompt = load_prompt(prompt_name)
     result = await deps.llm.generate(role,
                                      prompt.text,
-                                     user, schema, images)
+                                     user,
+                                     schema,
+                                     images)
     
     return result.parsed, usage_of(role, prompt, result)
+
+
+def verify_failed(state: AgentState) -> bool:
+    """The claim checker crashed or timed out (its draft stands unchecked)."""
+    return any(e.startswith("verify:") for e in state.get("errors") or [])
+
+
+def graph_mentions(state: AgentState) -> list[dict]:
+    """Analyzer entities first, then places, one per name."""
+    mentions, seen = [], set()
+    
+    for item in [*(state.get("entities") or []), *(state.get("places") or [])]:
+        
+        key = item["name"].strip().casefold()
+        if key and key not in seen:
+            seen.add(key)
+            mentions.append(item)
+            
+    return mentions
