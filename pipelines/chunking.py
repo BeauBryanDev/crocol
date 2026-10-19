@@ -65,10 +65,17 @@ SENTENCE_RE = re.compile(r"(?<=[.;:!?])\s+")
 ARTICLE_RE = re.compile(r"\b(?:ART[IÍ]CULO|Art[ií]culo)\s+(\d+(?:[.\s]\d+)*)", re.I)
 CLAUSE_RE = re.compile(r"^(?:CL[AÁ]USULA\s+)?(\d{1,2}(?:\.\d{1,2})?)\.\s+\S")
 PAGE_REF_RE = re.compile(r"^\d{1,3}$")
+MARKER_RE = re.compile(r"<!--.*?-->", re.S)
+BLANK_LINES_RE = re.compile(r"\n\s*\n+")
 
 
 def tokens(text):
     return int(len(text) / CHARS_PER_TOKEN) + 1
+
+
+def clean_body(text):
+    """Chunk text for embedding and BM25: page and table markers removed."""
+    return BLANK_LINES_RE.sub("\n\n", MARKER_RE.sub("", text)).strip()
 
 
 def fold(text):
@@ -449,7 +456,10 @@ def build_records(source_path, meta, chunks):
         pages = f"p. {chunk['page_start']}" if chunk["page_start"] == chunk["page_end"] else \
             f"p. {chunk['page_start']}-{chunk['page_end']}"
         prefix = f"[{title}] [{base['collection']}/{base['doc_type']}] {chunk['heading_path']} ({pages})".replace("  ", " ")
-        embed_text = f"{prefix}\n{chunk['text']}"
+        body = clean_body(chunk["text"])
+        embed_text = body if chunk["chunk_type"] == "text" else f"{chunk['heading_path']}\n{body}".strip()
+        embed_text = embed_text or prefix
+        lexical_source = f"{prefix}\n{body}"
         table = chunk["table"]
         records.append({
             "chunk_id": chunk_id,
@@ -463,8 +473,8 @@ def build_records(source_path, meta, chunks):
             "clause": clause,
             "text": chunk["text"],
             "embed_text": embed_text,
-            "lexical_text": normalize_lexical(embed_text),
-            "tokens": tokens(embed_text),
+            "lexical_text": normalize_lexical(lexical_source),
+            "tokens": tokens(lexical_source),
             "pipeline_version": PIPELINE_VERSION,
             "authors_list": meta.get("authors") or [],
         })
