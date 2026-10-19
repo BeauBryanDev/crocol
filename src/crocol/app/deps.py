@@ -14,6 +14,7 @@ from config.settings import (
 )
 from crocol.app.api.guards import RateLimiter, RunSlots, SpendCounter
 from crocol.application.usecases.ask_questions import AskQuestion
+from crocol.application.usecases.get_entity import GetEntity
 from crocol.application.usecases.get_trace import GetTrace
 from crocol.infrastructure.repository.spatials import PgSpatialStore
 from crocol.infrastructure.repository.traces import PgTraceStore
@@ -35,6 +36,7 @@ class AppContainer:
     other_limiter: RateLimiter
     spend: SpendCounter
     slots: RunSlots
+    get_entity: GetEntity | None = None
 
 
 def build_container(pool: AsyncConnectionPool | None) -> AppContainer:
@@ -51,6 +53,7 @@ def build_container(pool: AsyncConnectionPool | None) -> AppContainer:
         other_limiter=RateLimiter(OTHER_RATE_PER_MINUTE),
         spend=SpendCounter(GLOBAL_QUESTIONS_PER_DAY, GLOBAL_TOKENS_PER_DAY),
         slots=RunSlots(MAX_CONCURRENT_RUNS, RUN_WAIT_S),
+        get_entity=GetEntity(deps.graph) if deps.graph else None,
     )
 
 

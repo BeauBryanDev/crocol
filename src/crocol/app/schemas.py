@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -22,6 +22,7 @@ class ChatResponse(BaseModel):
     conflicts: list[dict[str, Any]] = []
     overlay_webp_b64: str | None = None
     usage: Usage | None = None
+    production: list[dict[str, Any]] = []
 
 
 class ErrorResponse(BaseModel):
@@ -64,6 +65,46 @@ class MetaResponse(BaseModel):
     limits: dict[str, Any]
     usage_today: dict[str, int]
     citation_labels: dict[str, str]
+
+
+class EntitySummary(BaseModel):
+    kind: str
+    name: str
+    score: float
+    mentions: int
+    props: dict[str, Any] = {}
+
+
+class EntityCandidate(BaseModel):
+    kind: str
+    name: str
+    score: float
+
+
+class EntityRelation(BaseModel):
+    direction: Literal["in", "out"]
+    rel: str
+    kind: str
+    total: int
+    names: list[str]
+
+
+class EntityDocument(BaseModel):
+    doc_id: str
+    citation: str
+    title: str
+    collection: str
+    scope: str
+    chunks: int
+    described: bool
+
+
+class EntityResponse(BaseModel):
+    entity: EntitySummary
+    candidates: list[EntityCandidate] = []
+    relations: list[EntityRelation] = []
+    documents: list[EntityDocument] = []
+    source: str
 
 
 class LocateResponse(BaseModel):
