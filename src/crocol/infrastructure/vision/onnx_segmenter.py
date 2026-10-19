@@ -30,13 +30,13 @@ from config.settings import (
 )
 from crocol.domains.models.cracks import CrackAnalysis, CrackReport
 from crocol.infrastructure.vision.crack_metrics import EIGHT_CONNECTED, measure
+from crocol.infrastructure.vision.renders import (
+    mask_webp,
+    overlay_webp,
+    preview_jpeg,
+)
 
 AMBIGUITY_BAND = 0.1
-OVERLAY_MAX_SIDE = 1024
-OVERLAY_ALPHA = 0.6
-OVERLAY_QUALITY = 80
-PREVIEW_QUALITY = 85
-CRACK_RGB = np.array([230, 40, 40], dtype=np.float32)
 
 
 def decode(image_bytes: bytes) -> np.ndarray:
@@ -100,30 +100,6 @@ def remove_specks(mask: np.ndarray,
     keep[0] = False
     
     return keep[labels]
-
-
-def overlay_webp(rgb: np.ndarray,
-                 mask: np.ndarray) -> bytes:
-    """Cracks painted red over the photo, as a compact WebP."""
-    blended = rgb.astype(np.float32)
-    blended[mask] = ((1 - OVERLAY_ALPHA) * blended[mask]
-                     + OVERLAY_ALPHA * CRACK_RGB)
-    
-    image = Image.fromarray(blended.clip(0, 255).astype(np.uint8))
-    image.thumbnail((OVERLAY_MAX_SIDE, OVERLAY_MAX_SIDE))
-    buffer = io.BytesIO()
-    
-    image.save(buffer, format="WEBP",
-               quality=OVERLAY_QUALITY, method=4)
-    
-    return buffer.getvalue()
-
-
-def preview_jpeg(rgb: np.ndarray) -> bytes:
-    """The validated, downscaled photo for a multimodal model."""
-    buffer = io.BytesIO()
-    Image.fromarray(rgb).save(buffer, format="JPEG", quality=PREVIEW_QUALITY)
-    return buffer.getvalue()
 
 
 def sanitize(image_bytes: bytes) -> bytes:
@@ -235,4 +211,5 @@ class OnnxCrackAnalyzer:
         )
         return CrackAnalysis(report=report,
                              overlay_webp=overlay_webp(rgb, mask),
+                             mask_webp=mask_webp(mask),
                              preview_jpeg=preview_jpeg(rgb))

@@ -8,12 +8,17 @@ AnswerStatus = Literal["answered", "abstained", "partial", "error"]
 
 @dataclass(frozen=True)
 class Answer:
-    text: str
-    status: AnswerStatus
-    citations: tuple[Citation, ...] = ()
-    references: tuple[str, ...] = ()
-    caveats: tuple[str, ...] = ()
+    """
+    Answer model class
+    """
+    text: str = field(default="")
+    status: AnswerStatus = field(default="answered")
+    citations: tuple[Citation, ...] = field(default_factory=tuple)
+    references: tuple[str, ...] = field(default_factory=tuple)
+    caveats: tuple[str, ...] = field(default_factory=tuple)
     conflicts: tuple[dict, ...] = field(default_factory=tuple)
-    partial: bool = False
-    overlay_webp: bytes = b""
+    partial: bool = field(default=False)
+    overlay_webp: bytes = field(default=b"")
     production: tuple[dict, ...] = field(default_factory=tuple)
+    simulation: dict | None = field(default=None)
+    vision: dict | None = field(default=None)

@@ -10,6 +10,7 @@ SUGGESTIONS_RE = re.compile(
     r"^\s*#{1,6}\s*(?:investigaci[oó]n sugerida|suggested further work)\b",
     re.I | re.M)
 LABEL_ONLY_RE = re.compile(rf"^\s*\[{LABEL}(?:\s*,\s*{LABEL})*\][.!?]?\s*$")
+PARAGRAPH_RE = re.compile(r"\n[ \t]*\n")
 
 # Citation markers
 CITATION_RE = re.compile(r"\b(C\d+)\b")
@@ -77,15 +78,23 @@ def without_suggestions(text: str) -> str:
     found = SUGGESTIONS_RE.search(text)
     return text[:found.start()].rstrip() if found else text
 
+# General only function I do not want my Agent to cited every single time.
+# I want to use this function to check if the text is a general only text.
+def general_general_only(text: str) -> bool:
+    """Check if the text is a general only text."""
+    labels = cited_labels(text)
+    return bool(labels) and set(labels) == {KG}
+    
 
 def corpus_text(text: str) -> str:
-    """Checkable text: no suggestions section, no [KG]-only sentences."""
+    """Checkable text: no suggestions, no [KG] paragraphs or sentences."""
     kept = []
-    for sentence in sentences(without_suggestions(text)):
-        labels = cited_labels(sentence)
-        if labels and set(labels) == {KG}:
+    for paragraph in PARAGRAPH_RE.split(without_suggestions(text)):
+        if general_general_only(paragraph):
             continue
-        kept.append(sentence)
+        for sentence in sentences(paragraph):
+            if not general_general_only(sentence):
+                kept.append(sentence)
     return " ".join(part for part in kept if part.strip())
 
 
