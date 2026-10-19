@@ -8,7 +8,7 @@ os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 from langgraph.graph.state import CompiledStateGraph  
 from psycopg_pool import AsyncConnectionPool  
 
-from config.roles import ( : E402
+from config.roles import (
     LLM_HTTP_TIMEOUT_S,
     RERANK_ENABLED,
     RERANK_MAX_CHARS,

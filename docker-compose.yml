@@ -1,0 +1,48 @@
+name: vmm
+
+services:
+  postgis:
+    image: postgis/postgis:16-3.5
+    container_name: vmm-postgis
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
+      TZ: America/Bogota
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5445}:5432"
+    volumes:
+      - vmm_pgdata:/var/lib/postgresql/data
+    shm_size: 1gb
+    command:
+      - postgres
+      - -c
+      - shared_buffers=1GB
+      - -c
+      - effective_cache_size=3GB
+      - -c
+      - work_mem=64MB
+      - -c
+      - maintenance_work_mem=512MB
+      - -c
+      - max_wal_size=2GB
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - max_parallel_workers_per_gather=4
+      - -c
+      - statement_timeout=0
+      - -c
+      - log_min_duration_statement=2000
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  vmm_pgdata:
+    name: vmm_pgdata
