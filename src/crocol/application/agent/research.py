@@ -1,17 +1,24 @@
+import asyncio
 from dataclasses import replace
 
 from config.roles import (
+    CANDIDATE_PER_DOC_CAP,
+    INVESTIGATE_GRADE_TIMEOUT_S,
     MAX_SUBQUESTIONS,
     PER_DOC_CAP,
+    RERANK_CANDIDATES,
     RESEARCH_MAX_CHUNKS,
     RESEARCH_RESERVED_CALLS,
+    UNGRADED_EVIDENCE,
 )
 from crocol.application.agent.nodes.fuse import fuse_chunks
 from crocol.application.agent.nodes.grade import grade
+from crocol.application.agent.nodes.rerank import rerank_chunks
 from crocol.application.agent.nodes.retrieve import search_variant
 from crocol.application.agent.routing import calls_left
 from crocol.application.agent.schemas import ResearchPlan, SubQuestion
 from crocol.application.agent.state import AgentDeps, AgentState, ask
+from crocol.application.tools.graph_search import graph_search
 from crocol.domains.models.chunks import Chunk
 
 
@@ -72,6 +79,33 @@ async def plan(state: AgentState, deps: AgentDeps) -> tuple[dict, dict]:
     return update, summary
 
 
+async def graph_lists(sub: dict, deps: AgentDeps) -> list[list[Chunk]]:
+    """The question's graph evidence, shared by every sub-question."""
+    mentions = sub.get("mentions") or []
+    if deps.graph is None or not mentions:
+        return []
+    try:
+        found = await graph_search(deps.graph, mentions, sub["corpus_scope"])
+    except Exception:
+        return []
+    return [lst for lst in (list(found.facts), list(found.chunks)) if lst]
+
+
+async def bounded_grade(local: AgentState, deps: AgentDeps) -> dict:
+    """Grade within its own limit; a slow grader keeps the reranked top."""
+    try:
+        graded, _ = await asyncio.wait_for(grade(local, deps),
+                                           timeout=INVESTIGATE_GRADE_TIMEOUT_S)
+        return graded
+    except TimeoutError:
+        return {
+            "evidence": list(local.get("chunks") or [])[:UNGRADED_EVIDENCE],
+            "grade": {"sufficient": False, "missing": "",
+                      "relevant": [], "reason": "grader timed out"},
+            "llm_calls": 1,
+        }
+
+
 async def investigate(sub: dict, deps: AgentDeps) -> tuple[dict, dict]:
     """One sub-question: retrieve, fuse and grade, with no retry."""
     local: AgentState = {
@@ -84,8 +118,11 @@ async def investigate(sub: dict, deps: AgentDeps) -> tuple[dict, dict]:
         "attempts": 0,
     }
     found = await search_variant(local, deps, sub["question"])
-    local["chunks"] = fuse_chunks([found])
-    graded, _ = await grade(local, deps)
+    lists = [found, *await graph_lists(sub, deps)]
+    candidates = fuse_chunks(lists, RERANK_CANDIDATES, CANDIDATE_PER_DOC_CAP)
+    local["chunks"], reranked = await rerank_chunks(sub["question"],
+                                                    candidates, deps)
+    graded = await bounded_grade(local, deps)
 
     result = {
         "index": sub["index"],
@@ -101,6 +138,7 @@ async def investigate(sub: dict, deps: AgentDeps) -> tuple[dict, dict]:
     summary = {
         "index": sub["index"],
         "hits": len(found),
+        "reranked": reranked.get("status", "ok"),
         "relevant": len(result["evidence"]),
         "sufficient": result["sufficient"],
     }
@@ -136,7 +174,10 @@ async def merge(state: AgentState, deps: AgentDeps) -> tuple[dict, dict]:
 
     results = state.get("sub_results") or []
     evidence = merged_evidence(results)
-    complete = bool(results) and all(r["sufficient"] for r in results)
+    gaps = sum(1 for r in results if not r["sufficient"])
+    # One uncovered sub-question is a gap the writer mentions, not a
+    # partial answer; most of them uncovered is.
+    mostly_covered = bool(results) and gaps * 2 <= len(results)
     missing = "; ".join(r["missing"] for r in results
                         if not r["sufficient"] and r["missing"])
 
@@ -145,11 +186,11 @@ async def merge(state: AgentState, deps: AgentDeps) -> tuple[dict, dict]:
         "evidence": evidence,
         "grade": {
             "relevant": [c.label for c in evidence],
-            "sufficient": complete and bool(evidence),
+            "sufficient": mostly_covered and bool(evidence),
             "missing": missing,
             "reason": "merged research evidence",
         },
-        "partial_evidence": bool(evidence) and not complete,
+        "partial_evidence": bool(evidence) and not mostly_covered,
     }
     summary = {
         "sub_results": len(results),
