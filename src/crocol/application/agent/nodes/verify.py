@@ -1,7 +1,12 @@
 from crocol.application.agent.schemas import Verification, render_evidence
 from crocol.application.agent.state import AgentDeps, AgentState, ask
 from crocol.domains.models.claims import Claim
-from crocol.domains.services.citations import normalize_labels
+from crocol.domains.services.citations import (
+    KG,
+    cited_labels,
+    corpus_text,
+    normalize_labels,
+)
 from crocol.domains.services.verification import (
     unknown_labels,
     unsupported_numbers,
@@ -19,7 +24,7 @@ def verification_request(state: AgentState, text: str) -> str:
 def deterministic_claims(text: str, state: AgentState) -> list[Claim]:
     evidence = state.get("evidence") or []
     claims = []
-    for label in unknown_labels(text, [c.label for c in evidence]):
+    for label in unknown_labels(text, [c.label for c in evidence] + [KG]):
         claims.append(Claim(f"cites unknown source [{label}]", (label,),
                             "unsupported", numeric=True))
     for token in unsupported_numbers(text, [c.text for c in evidence]):
@@ -45,7 +50,12 @@ async def verify(state: AgentState, deps: AgentDeps) -> tuple[dict, dict]:
         update = {"verified": False, "claims": []}
         return update, {"skipped": True}
 
-    text = draft["text"]
+    text = corpus_text(draft["text"])
+    general = KG in cited_labels(draft["text"])
+    if general and not [label for label in cited_labels(text) if label != KG]:
+        update = {"verified": True, "claims": []}
+        return update, {"skipped": True, "general_knowledge": True}
+
     hard = deterministic_claims(text, state)
     parsed, usage = await ask(
         deps, "verify", "checker", verification_request(state, text),

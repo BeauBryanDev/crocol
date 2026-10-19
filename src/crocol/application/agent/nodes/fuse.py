@@ -1,7 +1,12 @@
 from collections import Counter
 from dataclasses import replace
 
-from config.roles import FUSE_TOP, PER_DOC_CAP
+from config.roles import (
+    CANDIDATE_PER_DOC_CAP,
+    FUSE_TOP,
+    PER_DOC_CAP,
+    RERANK_CANDIDATES,
+)
 from crocol.application.agent.state import AgentDeps, AgentState
 from crocol.domains.models.chunks import Chunk
 from crocol.domains.services.fusion import rrf_merge
@@ -16,8 +21,10 @@ def current_lists(state: AgentState) -> list[list[Chunk]]:
     return lists
 
 
-def fuse_chunks(lists: list[list[Chunk]]) -> list[Chunk]:
-    """RRF across lists, one copy per chunk, PER_DOC_CAP per document."""
+def fuse_chunks(lists: list[list[Chunk]],
+                limit: int = FUSE_TOP,
+                per_doc_cap: int = PER_DOC_CAP) -> list[Chunk]:
+    """RRF across lists, one copy per chunk, per_doc_cap per document."""
     rows = []
     for ranked in lists:
         rows.append([{"id": c.chunk_id, "chunk": c} for c in ranked])
@@ -27,19 +34,19 @@ def fuse_chunks(lists: list[list[Chunk]]) -> list[Chunk]:
     chosen: list[Chunk] = []
     for row in merged:
         chunk = row["chunk"]
-        if per_doc[chunk.doc_id] >= PER_DOC_CAP:
+        if per_doc[chunk.doc_id] >= per_doc_cap:
             continue
         per_doc[chunk.doc_id] += 1
         label = f"C{len(chosen) + 1}"
         chosen.append(replace(chunk, label=label, score=row["fused_score"]))
-        if len(chosen) == FUSE_TOP:
+        if len(chosen) == limit:
             break
     return chosen
 
 
 async def fuse(state: AgentState, deps: AgentDeps) -> tuple[dict, dict]:
     lists = current_lists(state)
-    chunks = fuse_chunks(lists)
+    chunks = fuse_chunks(lists, RERANK_CANDIDATES, CANDIDATE_PER_DOC_CAP)
     summary = {
         "lists": len(lists),
         "chunks": len(chunks),

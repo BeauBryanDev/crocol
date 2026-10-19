@@ -60,6 +60,7 @@ def intervals(value: str) -> list[Interval]:
     for low in readings(tokens[0]):
         for high in readings(tokens[1]):
             candidates.append((min(low, high), max(low, high)))
+            
     return candidates
 
 

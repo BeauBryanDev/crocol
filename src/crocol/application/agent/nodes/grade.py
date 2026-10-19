@@ -18,16 +18,28 @@ def grade_request(state: AgentState) -> str:
     )
 
 
-async def grade(state: AgentState, deps: AgentDeps) -> tuple[dict, dict]:
+async def grade(state: AgentState,
+                deps: AgentDeps) -> tuple[dict, dict]:
+    
     chunks = state.get("chunks") or []
     if not chunks:
-        verdict = {**INSUFFICIENT, "missing": "retrieval returned nothing"}
-        update = {"grade": verdict, "evidence": [], "partial_evidence": False}
-        return update, {"sufficient": False, "relevant": 0, "llm": False}
+        verdict = {**INSUFFICIENT, 
+                   "missing": "retrieval returned nothing"
+                   }
+        update = {"grade": verdict, "evidence": [], 
+                  "partial_evidence": False
+                  }
+        return update, {"sufficient": False, 
+                        "relevant": 0,
+                        "llm": False}
 
     parsed, usage = await ask(
-        deps, "grade", "grader", grade_request(state), Grade)
+        deps, "grade", "grader", 
+        grade_request(state),
+        Grade)
+    
     verdict = dict(INSUFFICIENT)
+    
     if isinstance(parsed, Grade):
         verdict = parsed.model_dump()
 
@@ -37,6 +49,7 @@ async def grade(state: AgentState, deps: AgentDeps) -> tuple[dict, dict]:
     vision = [c for c in chunks if c.chunk_type == "vision"]
     others = [c for c in evidence if c.chunk_type != "vision"]
     evidence = (vision + others)[:SYNTH_MAX_CHUNKS]
+    
     if not evidence:
         verdict["sufficient"] = False
 

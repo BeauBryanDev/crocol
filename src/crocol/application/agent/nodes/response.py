@@ -1,10 +1,12 @@
 import re
 
-from crocol.application.agent.state import AgentDeps, AgentState
+from crocol.application.agent.state import AgentDeps, AgentState, verify_failed
 from crocol.domains.models.answers import Answer
 from crocol.domains.models.chunks import Chunk
 from crocol.domains.models.citations import Citation
+from config.settings import KG_LABEL
 from crocol.domains.services.citations import (
+    KG,
     cited_labels,
     reference_list,
     render_citation,
@@ -18,7 +20,21 @@ MESSAGES = {
         "closest": "Fuentes más cercanas encontradas:",
         "partial": "Respuesta parcial: se alcanzó un límite de tiempo o "
                    "de llamadas al modelo.",
-        "graph": "El grafo de conocimiento aún no está disponible.",
+        "graph": "No se pudo consultar el grafo de conocimiento; la "
+                 "respuesta usa las demás fuentes.",
+        "kg_reference": "Crocol-KG-2026. Grafo de conocimiento de Crocol y "
+                        "conocimiento general del modelo (no es un "
+                        "documento del corpus).",
+        "unverified_answer": "La verificación automática de las afirmaciones "
+                             "no terminó a tiempo; las citas son las del "
+                             "redactor.",
+        "production": "Producción fiscalizada ANH 2025–2026: promedios "
+                      "mensuales por día calendario (crudo en BPDC, gas en "
+                      "MPCPDC); la tendencia la calcula Crocol por regresión "
+                      "lineal.",
+        "kg_note": "Las citas (Crocol-KG-2026) provienen del grafo de "
+                   "conocimiento de Crocol o del conocimiento general del "
+                   "modelo, no de un pasaje del corpus.",
         "spatial": "Datos espaciales de ANH-Informacion-Petrolera-2026: "
                    "municipio y campo según los atributos de los pozos (sin "
                    "polígonos); la sísmica es geometría de adquisición, no "
@@ -46,7 +62,20 @@ MESSAGES = {
                    "this question.",
         "closest": "Closest sources found:",
         "partial": "Partial answer: a time or model-call limit was reached.",
-        "graph": "The knowledge graph is not available yet.",
+        "graph": "The knowledge graph could not be queried; the answer "
+                 "uses the other sources.",
+        "kg_reference": "Crocol-KG-2026. Crocol knowledge graph and the "
+                        "model's general knowledge (not a corpus "
+                        "document).",
+        "unverified_answer": "Automatic claim verification did not finish "
+                             "in time; citations are the writer's.",
+        "production": "ANH fiscalized production 2025–2026: monthly "
+                      "averages per calendar day (oil in BPDC, gas in "
+                      "MPCPDC); Crocol computes the trend by linear "
+                      "regression.",
+        "kg_note": "Citations (Crocol-KG-2026) come from the Crocol "
+                   "knowledge graph or the model's general knowledge, not "
+                   "from a corpus passage.",
         "spatial": "Spatial data from ANH-Informacion-Petrolera-2026: "
                    "municipality and field membership come from well "
                    "attributes (no polygons); seismic is acquisition "
@@ -77,24 +106,31 @@ def messages(state: AgentState) -> dict[str, str]:
 
 def closest_sources(state: AgentState) -> list[str]:
     seen: list[str] = []
+    
     for chunk in state.get("chunks") or []:
-        cite = render_citation(chunk.citation, chunk.page_start,
+        cite = render_citation(chunk.citation, 
+                               chunk.page_start,
                                chunk.page_end)
         if cite not in seen:
             seen.append(cite)
+            
         if len(seen) == CLOSEST_SOURCES:
             break
+        
     return seen
 
 
 async def abstain(state: AgentState,
-                  deps: AgentDeps) -> tuple[dict, dict]:
+                  deps: AgentDeps
+                  ) -> tuple[dict, dict]:
+    """ do not answer if retrieval returned nothing or verification failed """
     text = messages(state)["abstain"]
     sources = closest_sources(state)
     if sources:
         text = f"{text}\n\n{messages(state)['closest']} " + "; ".join(sources)
     draft = {"text": text, "cited": [], "insufficient": True}
-    return {"draft": draft}, {"closest_sources": len(sources)}
+    
+    return {"draft": draft}, {"closest_sources": len(sources), "llm_calls": 1}
 
 
 def drop_failing(text: str,
@@ -105,11 +141,14 @@ def drop_failing(text: str,
     for claim in state.get("claims") or []:
         if not claim.failing or not claim.text:
             continue
+        
         if NUMBER_ONLY_RE.match(claim.text):
             unverified.append(claim.text)
+            
         elif claim.text in text:
             text = text.replace(claim.text, "").strip()
             removed.append(claim.text)
+            
     return text, removed, unverified
 
 
@@ -118,6 +157,10 @@ def citations_for(text: str,
     by_label = {c.label: c for c in chunks}
     citations = []
     for label in cited_labels(text):
+        if label == KG:
+            citations.append(Citation(KG, "kg-general-knowledge", "kg",
+                                      f"({KG_LABEL})"))
+            continue
         chunk = by_label.get(label)
         if chunk is None:
             continue
@@ -149,18 +192,39 @@ async def references_for(
     return reference_list([*found, *missing])
 
 
+async def references_with_kg(state: AgentState,
+                             citations: list[Citation],
+                             chunks: list[Chunk],
+                             deps: AgentDeps,
+                             general: bool) -> list[str]:
+
+    corpus = [c for c in citations if c.label != KG]
+    references = await references_for(corpus, chunks, deps)
+    if general:
+        references = reference_list([*references,
+                                     messages(state)["kg_reference"]])
+    return references
+
+
 def caveats_for(state: AgentState,
                 removed: list[str],
                 unverified: list[str],
-                cited: list[Chunk]
+                cited: list[Chunk],
+                general: bool = False
                 ) -> list[str]:
     
     text = messages(state)
     caveats = []
     channels = state.get("channels") or {}
     graph = channels.get("graph")
-    if graph is not None and graph["status"] == "skipped":
+    if graph is not None and graph["status"] == "error":
         caveats.append(text["graph"])
+    if general or any(c.doc_type == "graph_fact" for c in cited):
+        caveats.append(text["kg_note"])
+    if any(c.doc_type == "production_series" for c in cited):
+        caveats.append(text["production"])
+    if verify_failed(state):
+        caveats.append(text["unverified_answer"])
     if any(c.doc_type == "spatial_query" for c in cited):
         caveats.append(text["spatial"])
     if state.get("partial"):
@@ -183,6 +247,7 @@ def caveats_for(state: AgentState,
         caveats.append(text["spatial_failed"])
     if any(c.doc_type == "ai_research_report" for c in cited):
         caveats.append(text["ai"])
+        
     return caveats
 
 
@@ -202,9 +267,12 @@ async def finalize(state: AgentState,
     """Citations from metadata, never from model text; caveats appended."""
     draft = state.get("draft")
     chunks = state.get("evidence") or state.get("chunks") or []
+    
     text, removed, unverified = "", [], []
+    
     if draft is not None:
         text, removed, unverified = drop_failing(draft["text"], state)
+        
     if draft is None:
         sources = closest_sources(state)
         text = f"{messages(state)['partial']}\n\n{messages(state)['closest']} "
@@ -214,15 +282,22 @@ async def finalize(state: AgentState,
     rendered = {c.label: c.rendered for c in citations}
     cited_ids = {c.chunk_id for c in citations}
     cited = [c for c in chunks if c.chunk_id in cited_ids]
+    general = any(c.label == KG for c in citations)
+    
     answer = Answer(
         text=replace_labels(text, rendered),
         status=status_of(state, draft),
         citations=tuple(citations),
-        references=tuple(await references_for(citations, chunks, deps)),
-        caveats=tuple(caveats_for(state, removed, unverified, cited)),
+        references=tuple(await references_with_kg(state, citations, 
+                                                  chunks,
+                                                  deps, general)),
+        caveats=tuple(caveats_for(state, removed,
+                                  unverified, cited,
+                                  general)),
         conflicts=tuple(state.get("conflicts") or []),
         partial=bool(state.get("partial")) or draft is None,
         overlay_webp=state.get("overlay") or b"",
+        production=tuple(state.get("production") or []),
     )
     summary = {
         "answer_status": answer.status,

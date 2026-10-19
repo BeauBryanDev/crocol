@@ -1,6 +1,7 @@
 import re
 
 from config.roles import MAX_VARIANTS, RESEARCH_MODE_ENABLED
+from config.settings import KG_MAX_ENTITIES
 from crocol.application.agent.schemas import Analysis
 from crocol.application.agent.state import (
     AgentDeps,
@@ -20,7 +21,9 @@ def guess_language(question: str) -> str:
 
 
 def fallback_analysis(question: str) -> Analysis:
+    
     language = guess_language(question)
+    
     return Analysis(
         language=language,
         mode="quick",
@@ -33,22 +36,34 @@ def fallback_analysis(question: str) -> Analysis:
     )
 
 
-def unique_variants(question: str, extra: list[str]) -> list[str]:
+def unique_variants(question: str,
+                    extra: list[str]
+                    ) -> list[str]:
+    
     variants: list[str] = []
     seen: set[str] = set()
+    
     for text in [question, *extra]:
+        
         key = text.strip().casefold()
         if key and key not in seen:
             seen.add(key)
             variants.append(text.strip())
+            
     return variants[:MAX_VARIANTS]
 
 
-async def analyze(state: AgentState, deps: AgentDeps) -> tuple[dict, dict]:
+async def analyze(state: AgentState, 
+                  deps: AgentDeps) -> tuple[dict, dict]:
+    
     question = state["question"]
-    parsed, usage = await ask(deps, "analyze", "analyst", question, Analysis)
+    parsed, usage = await ask(deps, 
+                              "analyze",
+                              "analyst", 
+                              question, Analysis)
     analysis = parsed if isinstance(parsed, Analysis) else None
     fallback = analysis is None
+    
     if analysis is None:
         analysis = fallback_analysis(question)
 
@@ -73,6 +88,8 @@ async def analyze(state: AgentState, deps: AgentDeps) -> tuple[dict, dict]:
         "query_variants": variants,
         "bm25_query": analysis.bm25_query,
         "places": [place.model_dump() for place in analysis.places[:3]],
+        "entities": [e.model_dump()
+                     for e in analysis.entities[:KG_MAX_ENTITIES]],
         "strategies": [strategy],
         "llm_calls": 1,
         "llm_usage": [usage],
@@ -86,6 +103,8 @@ async def analyze(state: AgentState, deps: AgentDeps) -> tuple[dict, dict]:
         "query_type": analysis.query_type,
         "variants": len(variants),
         "places": len(analysis.places),
+        "entities": len(analysis.entities),
         "fallback": fallback,
     }
+    
     return update, summary

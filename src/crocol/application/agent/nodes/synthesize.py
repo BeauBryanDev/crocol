@@ -11,6 +11,8 @@ LANGUAGES = {
 
 def partial_note(state: AgentState) -> str:
 
+    if not state.get("evidence"):
+        return "EVIDENCE STATUS: NONE\n\n"
     if not state.get("partial_evidence"):
         return ""
 

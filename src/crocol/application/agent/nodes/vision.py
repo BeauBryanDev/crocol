@@ -34,6 +34,7 @@ def failed(state: AgentState, reason: str) -> tuple[dict, dict]:
 
     channel = ChannelResult(attempt=state.get("attempts", 0),
                             status="error", lists=[], detail=reason)
+    
     return {"channels": {"vision": channel}}, {"status": "error",
                                                 "error": reason}
 
@@ -57,7 +58,8 @@ async def retrieve_vision(state: AgentState,
     chunks = [crack_chunk(report)]
     parsed, usage = await ask(
         deps, "vision", "vision_describer",
-        vision_request(state, outputs_text(report)), VisualDiagnosis,
+        vision_request(state, outputs_text(report)), 
+        VisualDiagnosis,
         images=((analysis.preview_jpeg, "image/jpeg"),))
     if isinstance(parsed, VisualDiagnosis):
         chunks.append(interpretation_chunk(

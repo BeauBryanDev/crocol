@@ -9,7 +9,9 @@ from crocol.application.agent.state import (
 
 
 def rewrite_request(state: AgentState) -> str:
+    
     grade = state.get("grade") or {}
+    
     return (
         f"QUESTION:\n{state['question']}\n\n"
         f"PREVIOUS STRATEGY:\n"
@@ -25,10 +27,13 @@ def widened(state: AgentState) -> RewritePlan:
     """Deterministic fallback: widen the scope, then switch the query type."""
     scope = state.get("corpus_scope", "core")
     query_type = state.get("query_type", "conceptual")
+    
     if scope == "core":
         scope = "all"
+        
     elif query_type != "exact":
         query_type = "exact"
+        
     else:
         query_type = "conceptual"
         

@@ -13,7 +13,7 @@ Extract records only for these properties, and write the property field as exact
 - environment: depositional environment
 
 For each record return:
-- entity: the formation, member, well or field the value refers to. If the value belongs to one sample or one well, include it, for example "La Luna, muestra CH" or "La Luna, pozo X"; use the bare unit name only for values the passage gives for the whole unit.
+- entity: the formation, member, well or field the value refers to. If the value belongs to one sample or one well, include it, for example "La Luna, muestra CH" or "La Luna, pozo X"; use the bare unit name only for values the passage gives for the whole unit, you also investigate for oil well and field names.
 - property: one of the codes above, nothing else.
 - value: the value exactly as written (number or range or text).
 - unit: the unit as written, or an empty string.
