@@ -24,8 +24,8 @@ RRF_K = 60
 CANDIDATES = 300
 BM25_WEIGHTS = {
     "exact": 1.0,
-    "conceptual": 0.3,
-    "cross_language": 0.3,
+    "conceptual": 1.0,
+    "cross_language": 1.0,
 }
 
 CORE_COLLECTIONS = ("VMM_Basin",)
@@ -46,6 +46,11 @@ VISION_MAX_SIDE = 1024
 VISION_THREADS = 2
 VISION_BATCH = 8
 VISION_MIN_COMPONENT_PX = 60
+
+KG_LABEL = "Crocol-KG-2026"
+KG_MAX_ENTITIES = 4
+KG_EVIDENCE_CHUNKS = 12
+KG_FACT_ROWS = 14
 VISION_BORDER_PX = 3
 VISION_MAX_BYTES = 10 * 1024 * 1024
 VISION_MAX_PIXELS = 24_000_000
@@ -83,6 +88,7 @@ class Settings(BaseSettings):
     openai_api_key: SecretStr
     google_api_key: SecretStr | None = None
     anthropic_api_key: SecretStr | None = None
+    cohere_api_key: SecretStr | None = None
     pg_dsn: SecretStr | None = None
     crocol_env: str = "development"
     crocol_cors_origins: str = "http://localhost:5173"
@@ -125,7 +131,7 @@ def peripheral_in_core(path: Path) -> list[str]:
 def default_excluded_sources() -> tuple[str, ...]:
     """Peripheral documents inside a core collection, across all volumes."""
     excluded = []
-    for _, metadata_path in CORPUS_VOLUMES:
+    for _, metadata_path in CORPUS_VOLUMES: # AI Generate Documents
         excluded.extend(peripheral_in_core(metadata_path))
         
     return tuple(sorted(excluded))
