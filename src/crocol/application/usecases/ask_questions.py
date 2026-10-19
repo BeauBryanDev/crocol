@@ -130,6 +130,7 @@ def final_event(trace_id: str, answer: Answer, record: dict) -> dict:
         "conflicts": list(answer.conflicts),
         "overlay_webp_b64": base64.b64encode(answer.overlay_webp).decode()
         if answer.overlay_webp else None,
+        "production": list(answer.production),
     }
 
 
