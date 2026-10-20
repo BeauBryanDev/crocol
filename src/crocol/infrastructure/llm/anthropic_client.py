@@ -3,6 +3,7 @@ import base64
 from anthropic import AsyncAnthropic
 from pydantic import BaseModel
 
+from config.roles import EFFORT
 from crocol.application.ports.llm import Images, LLMResult
 
 FAILED_STOPS = ("max_tokens", "refusal", "model_context_window_exceeded")
@@ -35,12 +36,16 @@ class AnthropicLLM:
                 "type": "base64", "media_type": mime,
                 "data": base64.b64encode(data).decode("ascii")}})
         content.append({"type": "text", "text": user})
+        extra = {}
+        if model in EFFORT:
+            extra["output_config"] = {"effort": EFFORT[model]}
         response = await self._client.messages.parse(
             model=model,
             max_tokens=max_tokens,
             system=system,
             messages=[{"role": "user", "content": content}],
             output_format=schema,
+            **extra,
         )
 
         parsed = response.parsed_output

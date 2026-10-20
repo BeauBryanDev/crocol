@@ -1,3 +1,4 @@
+import logging
 from dataclasses import replace
 from typing import Protocol
 
@@ -6,6 +7,7 @@ from pydantic import BaseModel
 from config.roles import FALLBACKS, MAX_OUTPUT_TOKENS, MODELS
 from crocol.application.ports.llm import Images, LLMResult
 
+LOGGER = logging.getLogger("crocol.llm")
 TRIES_PER_MODEL = 2
 JUDGE_ROLES = ("grade", "verify", "conflict")
 
@@ -66,6 +68,9 @@ class RoleRouter:
 
             if result.ok or result.error == "refusal":
                 return result
+            LOGGER.warning("llm %s on %s failed: %s (out %d tokens)", role,
+                           model, result.error or "unparsed",
+                           result.output_tokens)
 
         return result
 
@@ -78,10 +83,13 @@ class RoleRouter:
                        ) -> LLMResult:
 
         model = MODELS[role]
-        result = await self.attempt(model, role, system, user, schema,
-                                    images)
+        result = await self.attempt(model, role,
+                                    system, user,
+                                     schema, images)
+
         judged_by_other_family = role in JUDGE_ROLES and is_gemini(model)
-        if result.ok:
+
+        if result.ok:  # follow up traces
             return replace(result, cross_family=judged_by_other_family)
 
         fallback = FALLBACKS.get(role)
