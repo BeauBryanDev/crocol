@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 
 from config.exceptions import NotFoundError
 from config.settings import API_PREFIX
-from crocol.app.api.answers import answer_json
+from crocol.app.api.answers import Admitted, answer_json
 from crocol.app.api.deps import (
     admit_other,
     chat_admission,
@@ -21,23 +21,19 @@ State = Annotated[AppContainer, Depends(container)]
 
 
 @router.post("/chat", response_model=ChatResponse, responses=ERRORS)
-async def chat(admitted: Annotated[tuple[str, dict | None],
-                                   Depends(chat_admission)],
+async def chat(admitted: Annotated[Admitted, Depends(chat_admission)],
                state: State
                ) -> dict:
     """Ask Crocol a question (optionally with a well) as one JSON answer."""
-    question, well = admitted
-    return await answer_json(state, question, None, well)
+    return await answer_json(state, admitted)
 
 
 @router.post("/image", response_model=ChatResponse, responses=ERRORS)
-async def image(admitted: Annotated[tuple[str, bytes],
-                                    Depends(image_admission)],
+async def image(admitted: Annotated[Admitted, Depends(image_admission)],
                 state: State
                 ) -> dict:
     """Question plus a rock image (multipart): crack analysis and answer."""
-    question, picture = admitted
-    return await answer_json(state, question, picture)
+    return await answer_json(state, admitted)
 
 
 @router.get("/traces/{trace_id}", response_model=TraceResponse,
