@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from psycopg_pool import AsyncConnectionPool
 
@@ -11,8 +11,11 @@ from config.settings import (
     RATE_PER_DAY,
     RATE_PER_MINUTE,
     RUN_WAIT_S,
+    WELLSIM_RUNS_PER_MINUTE,
+    WELLSIM_SWEEPS_PER_DAY,
 )
 from crocol.app.api.guards import RateLimiter, RunSlots, SpendCounter
+from crocol.application.tools.well_simulation import SimulationRunner
 from crocol.application.usecases.ask_questions import AskQuestion
 from crocol.application.usecases.get_entity import GetEntity
 from crocol.application.usecases.get_trace import GetTrace
@@ -20,6 +23,16 @@ from crocol.infrastructure.repository.spatials import PgSpatialStore
 from crocol.infrastructure.repository.traces import PgTraceStore
 from crocol.infrastructure.vision.image_store import LocalImageStore
 from crocol.infrastructure.vision.onnx_segmenter import OnnxCrackAnalyzer
+
+
+def wellsim_run_limiter() -> RateLimiter:
+
+    return RateLimiter(WELLSIM_RUNS_PER_MINUTE)
+
+
+def wellsim_sweep_limiter() -> RateLimiter:
+    """The daily cap is the only sweep limit, so it also bounds a minute."""
+    return RateLimiter(WELLSIM_SWEEPS_PER_DAY, WELLSIM_SWEEPS_PER_DAY)
 
 
 @dataclass
@@ -37,6 +50,10 @@ class AppContainer:
     spend: SpendCounter
     slots: RunSlots
     get_entity: GetEntity | None = None
+    simulation: SimulationRunner | None = None
+    run_limiter: RateLimiter = field(default_factory=wellsim_run_limiter)
+    sweep_limiter: RateLimiter = field(
+        default_factory=wellsim_sweep_limiter)
 
 
 def build_container(pool: AsyncConnectionPool | None) -> AppContainer:
@@ -54,6 +71,7 @@ def build_container(pool: AsyncConnectionPool | None) -> AppContainer:
         spend=SpendCounter(GLOBAL_QUESTIONS_PER_DAY, GLOBAL_TOKENS_PER_DAY),
         slots=RunSlots(MAX_CONCURRENT_RUNS, RUN_WAIT_S),
         get_entity=GetEntity(deps.graph) if deps.graph else None,
+        simulation=deps.simulation,
     )
 
 

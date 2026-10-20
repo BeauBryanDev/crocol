@@ -31,6 +31,7 @@ def connection_entries(pairs: list[tuple[np.ndarray,
         rows.extend([a, b])
         cols.extend([b, a])
         vals.extend([-t, -t])
+        
     return (np.concatenate(rows), np.concatenate(cols),
             np.concatenate(vals), diag)
 

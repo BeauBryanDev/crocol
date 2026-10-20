@@ -16,13 +16,15 @@ State = Annotated[AppContainer, Depends(container)]
 
 @router.post("/chat/stream", response_class=EventSourceResponse,
              responses=ERRORS)
-async def chat_stream(question: Annotated[str, Depends(chat_admission)],
+async def chat_stream(admitted: Annotated[tuple[str, dict | None],
+                                          Depends(chat_admission)],
                       request: Request,
                       state: State
                       ) -> AsyncIterable[ServerSentEvent]:
     """SSE: `node` events while the agent works, then `final` or `error`."""
+    question, well = admitted
     async for event in answer_events(state, question, None,
-                                     request.state.request_id):
+                                     request.state.request_id, well):
         yield event
 
 

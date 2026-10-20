@@ -12,7 +12,7 @@ from starlette.exceptions import HTTPException
 from config.exceptions import CrocolError, RateLimitedError
 from config.settings import APP_VERSION, PURGE_EVERY_S, get_settings
 from crocol.app.api.middleware import request_context
-from crocol.app.api.routers import chat, graph, health, stream
+from crocol.app.api.routers import chat, graph, health, stream, wellsim
 from crocol.app.api.routers import map as map_routes
 from crocol.app.deps import AppContainer, build_container, seed_spend
 from crocol.infrastructure.repository.pool import build_pool
@@ -158,8 +158,8 @@ def create_app() -> FastAPI:
                        allow_credentials=False,
                        max_age=600)
 
-    for module in (chat, stream, 
-                   health, map_routes, graph):
+    for module in (chat, stream,
+                   health, map_routes, graph, wellsim):
         app.include_router(module.router)
         
     return app

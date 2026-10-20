@@ -21,11 +21,13 @@ State = Annotated[AppContainer, Depends(container)]
 
 
 @router.post("/chat", response_model=ChatResponse, responses=ERRORS)
-async def chat(question: Annotated[str, Depends(chat_admission)],
+async def chat(admitted: Annotated[tuple[str, dict | None],
+                                   Depends(chat_admission)],
                state: State
                ) -> dict:
-    """Ask Crocol a question and get the full answer as JSON."""
-    return await answer_json(state, question, None)
+    """Ask Crocol a question (optionally with a well) as one JSON answer."""
+    question, well = admitted
+    return await answer_json(state, question, None, well)
 
 
 @router.post("/image", response_model=ChatResponse, responses=ERRORS)

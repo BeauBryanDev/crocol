@@ -32,7 +32,10 @@ class SweepOptions(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     controls: list[Literal["rate", "bhp"]] = Field(
-        default_factory=default_controls, min_length=1, max_length=2)
+        default_factory=default_controls, 
+        min_length=1, 
+        max_length=2,
+        description="Controls to sweep over: rate and bhp")
     n_rate: int = Field(10, ge=3, le=20, description="Coarse rate grid size")
     n_bhp: int = Field(8, ge=3, le=15, description="BHP grid size")
     rate_min: Optional[float] = Field(
@@ -48,12 +51,14 @@ class SweepOptions(BaseModel):
 
     @model_validator(mode="after")
     def check_range(self) -> "SweepOptions":
+        """Check the range of the rates."""
         both = self.rate_min is not None and self.rate_max is not None
         if both and self.rate_min >= self.rate_max:
             raise ValueError("rate_min must be below rate_max")
+        """Check the controls."""
         if len(set(self.controls)) != len(self.controls):
             raise ValueError("controls must not repeat")
-        return self
+        return self # Return the sweep options
 
 
 def sweep_tool_spec() -> dict[str, Any]:
@@ -61,12 +66,12 @@ def sweep_tool_spec() -> dict[str, Any]:
         "name": "run_well_sweep",
         "description": (
             "Run the well simulator over a grid of rate and bottomhole-"
-            "pressure controls for the current well and return a table of "
+            "pressure controls for the current well and return a table of " # Description
             "cumulative oil (Np) at the horizon, recovery factor, plateau, "
             "drawdown and binding constraints. Reservoir properties, skin "
-            "and operating constraints are fixed by the session. Use it to "
-            "find the rate that maximizes recovery, narrowing rate_min and "
-            "rate_max on later calls."),
+            "and operating constraints are fixed by the session. Use it to " # Description
+            "find the rate that maximizes recovery, narrowing rate_min and " # Description
+            "rate_max on later calls."), # Description
         "input_schema": SweepOptions.model_json_schema(),
     }
 
@@ -126,9 +131,9 @@ class SweepResult:
     curves: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        rows = [rounded(r) for r in self.rows]
+        rows = [rounded(r) for r in self.rows] # Rounded rows
         horizon = self.inputs["horizon_days"]
-        return {
+        return { # Return the dictionary
             "objective": f"maximize Np at the horizon of {horizon:g} days",
             "inputs": self.inputs,
             "bounds": self.bounds,

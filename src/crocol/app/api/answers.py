@@ -32,11 +32,12 @@ async def settle(state: AppContainer, final: dict,
 
 async def answer_json(state: AppContainer,
                       question: str,
-                      image: bytes | None) -> dict:
+                      image: bytes | None,
+                      well: dict | None = None) -> dict:
     """One full answer; the run slot is held for the whole run."""
     try:
         async with state.slots.slot():
-            final = await state.ask.ask(question, image)
+            final = await state.ask.ask(question, image, well)
     except BusyError:
         state.spend.release()
         raise
@@ -51,11 +52,13 @@ def without_event(event: dict) -> dict:
 
 async def answer_events(state: AppContainer, question: str,
                         image: bytes | None,
-                        request_id: str) -> AsyncIterator[ServerSentEvent]:
+                        request_id: str,
+                        well: dict | None = None
+                        ) -> AsyncIterator[ServerSentEvent]:
     """SSE: one `node` event per agent step, then `final` (or `error`)."""
     try:
         async with state.slots.slot():
-            async for event in state.ask.stream(question, image):
+            async for event in state.ask.stream(question, image, well):
                 
                 if event["event"] == "final":
                     await settle(state, event, image)
