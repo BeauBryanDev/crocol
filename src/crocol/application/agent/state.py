@@ -39,6 +39,11 @@ def merge_channels(
 
 class AgentState(TypedDict, total=False):
     question: str
+    user_question: str
+    history: list[dict]
+    ui_context: dict[str, str] | None
+    follows_up: bool
+    prior_coverage: str
     language: str
     mode: Literal["quick", "research"]
     intents: list[str]
@@ -95,9 +100,16 @@ class AgentDeps:
 
 def initial_state(question: str,
                   image: bytes | None = None,
-                  well: dict[str, Any] | None = None) -> AgentState:
+                  well: dict[str, Any] | None = None,
+                  history: list[dict] | None = None,
+                  ui_context: dict[str, str] | None = None) -> AgentState:
     return {
         "question": question,
+        "user_question": question,
+        "history": list(history or []),
+        "ui_context": ui_context,
+        "follows_up": False,
+        "prior_coverage": "",
         "language": "es",
         "mode": "quick",
         "corpus_scope": "core",

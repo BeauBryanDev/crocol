@@ -6,6 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from config.roles import VOICE_PROMPTS
 from crocol.domains.models.chunks import Chunk
 from crocol.domains.services.citations import page_span
 
@@ -41,6 +42,9 @@ class Analysis(BaseModel):
     bm25_query: str | None = None
     places: list[PlaceMention] = []
     entities: list[EntityMention] = []
+    follows_up: bool = False
+    standalone_question: str | None = None
+    prior_coverage: str = ""
 
 
 class VisualDiagnosis(BaseModel):
@@ -71,11 +75,13 @@ class DraftAnswer(BaseModel):
     text: str
     cited: list[str]
     insufficient: bool = False
+    summary: str = ""
 
 
 class SimulationAnswer(BaseModel):
     language: Literal["es", "en"]
     text: str
+    summary: str = ""
 
 
 class ClaimCheck(BaseModel):
@@ -120,27 +126,35 @@ class Prompt:
     text: str
 
 
-@lru_cache
-def load_prompt(name: str) -> Prompt:
-    """Prompt file with a version front-matter line."""
+def read_prompt(name: str) -> tuple[str, str]:
+    """Version and body of one prompt file (front matter removed)."""
     raw = (PROMPTS / f"{name}.md").read_text(encoding="utf-8")
     version = "0"
     match = FRONT_MATTER_RE.match(raw)
-    
+
     if match:
         for line in match.group(1).splitlines():
-            
+
             key, _, value = line.partition(":")
-            
+
             if key.strip() == "version":
                 version = value.strip()
-                
+
         raw = raw[match.end():]
-        
-    return Prompt(name=name, 
-                  version=version,
-                  text=raw.strip()
-                  )
+
+    return version, raw.strip()
+
+
+@lru_cache
+def load_prompt(name: str) -> Prompt:
+    """Role prompt behind the shared persona (voice or expert)."""
+    persona = "voice" if name in VOICE_PROMPTS else "expert"
+    persona_version, persona_text = read_prompt(f"_persona_{persona}")
+    version, text = read_prompt(name)
+
+    return Prompt(name=name,
+                  version=f"{version}+{persona}{persona_version}",
+                  text=f"{persona_text}\n\n{text}")
 
 
 def chunk_header(chunk: Chunk) -> str:
