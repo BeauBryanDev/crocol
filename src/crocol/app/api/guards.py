@@ -78,11 +78,13 @@ class SpendCounter:
     def __init__(self, max_questions: int
                  , max_tokens: int,
                  today: Callable[[],
-                                 str] = utc_day
+                                 str] = utc_day,
+                 run_estimate: int = 0
                  ) -> None:
 
         self._max_questions = max_questions
         self._max_tokens = max_tokens
+        self._run_estimate = run_estimate
         self._today = today
         self._day = today()
         self.questions = 0
@@ -103,7 +105,7 @@ class SpendCounter:
 
         self.roll()
         if (self.questions >= self._max_questions
-                or self.tokens >= self._max_tokens):
+                or self.tokens + self._run_estimate >= self._max_tokens):
             raise BudgetExceededError()
         self.questions += 1
 

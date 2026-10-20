@@ -1,7 +1,10 @@
 import asyncio
+import json
+import time
 from typing import Annotated
 
 from fastapi import Form, Request, UploadFile
+from pydantic import TypeAdapter, ValidationError
 
 from config.exceptions import (
     ImageTooLargeError,
@@ -9,20 +12,29 @@ from config.exceptions import (
     RateLimitedError,
     UnavailableError,
 )
+from config.roles import MEMORY_TURNS
 from config.settings import (
     QUESTION_MAX_CHARS,
     QUESTION_MIN_CHARS,
     VISION_MAX_BYTES,
     get_settings,
 )
+from crocol.app.api.answers import Admitted
 from crocol.app.api.guards import RateLimiter
 from crocol.app.deps import AppContainer
-from crocol.app.schemas import ChatRequest, WellParams, WellSweepRequest
+from crocol.app.schemas import (
+    ChatRequest,
+    MemoryRecord,
+    WellParams,
+    WellSweepRequest,
+)
 from crocol.infrastructure.simulation.adapter import web_input, web_options
 from crocol.infrastructure.vision.onnx_segmenter import sanitize
 
 RUN_LIMIT_MESSAGE = "too many simulations; please wait a minute"
 SWEEP_LIMIT_MESSAGE = "the daily sweep limit for this address is used up"
+MAX_HISTORY_FORM_CHARS = 16_000
+HISTORY = TypeAdapter(list[MemoryRecord])
 
 
 def container(request: Request) -> AppContainer:
@@ -88,29 +100,58 @@ def require_simulator(request: Request) -> None:
         raise UnavailableError()
 
 
-def chat_admission(body: ChatRequest,
-                   request: Request) -> tuple[str, dict | None]:
-    """Validated question and optional well, admitted only after both pass."""
+def recall(request: Request, records: list[MemoryRecord]) -> list[dict]:
+    """Only records this server signed and that are still fresh survive."""
+    signer = container(request).memory
+    if signer is None or not records:
+        return []
+    raw = [record.model_dump() for record in records]
+    return signer.verified(raw, int(time.time()), MEMORY_TURNS)
+
+
+def form_history(text: str) -> list[MemoryRecord]:
+    """Multipart history (JSON text); malformed memory is just forgotten."""
+    if not text or len(text) > MAX_HISTORY_FORM_CHARS:
+        return []
+    try:
+        records = HISTORY.validate_python(json.loads(text))
+    except (ValueError, ValidationError):
+        return []
+    return records[-MEMORY_TURNS:]
+
+
+def chat_admission(body: ChatRequest, request: Request) -> Admitted:
+    """Validated question, optional well and memory, admitted last."""
     question = clean_question(body.question)
     well = None
     if body.well is not None:
         require_simulator(request)
         well = well_dict(body.well)
         web_input(well, for_sweep=True)
+    ui = None
+    if body.ui_context is not None:
+        ui = body.ui_context.model_dump(exclude_none=True) or None
+    history = recall(request, body.history)
     admit_question(request)
-    return question, well
+    return Admitted(question=question, well=well, history=history,
+                    ui_context=ui)
 
 
 async def image_admission(request: Request,
                           question: Annotated[str, Form()],
-                          image: UploadFile
-                          ) -> tuple[str, bytes]:
+                          image: UploadFile,
+                          history: Annotated[str, Form()] = ""
+                          ) -> Admitted:
     """Validated question and sanitized image (EXIF removed), admitted."""
     text = clean_question(question)
     raw = await read_image(image)
     clean = await asyncio.to_thread(sanitize, raw)
+    remembered = recall(request, form_history(history))
     admit_question(request)
-    return text, clean
+
+    return Admitted(question=text, 
+                    image=clean, 
+                    history=remembered)
 
 
 def run_admission(body: WellParams, request: Request) -> dict:
