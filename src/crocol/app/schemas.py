@@ -1,8 +1,10 @@
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from config.roles import MEMORY_TURNS
 from config.settings import (
+    MEMORY_FIELD_CHARS,
     WELLSIM_MAX_N_BHP,
     WELLSIM_MAX_N_RATE,
     WELLSIM_MAX_NR,
@@ -11,9 +13,41 @@ from config.settings import (
 )
 
 
+ShortText = Annotated[str, Field(max_length=120)]
+MemoryText = Annotated[str, Field(max_length=MEMORY_FIELD_CHARS)]
+
+
+class MemoryRecord(BaseModel):
+    """One remembered turn; signed by the server, kept by the browser."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    v: int
+    ts: int
+    kind: Literal["text", "image", "wellsim"]
+    language: Literal["es", "en"]
+    question: MemoryText
+    standalone: MemoryText
+    summary: MemoryText
+    entities: list[ShortText] = Field(default=[], max_length=8)
+    facts: dict[str, ShortText] = Field(default={}, max_length=8)
+    sig: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class UiContext(BaseModel):
+    """What the user has open on screen; context, never evidence."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    formation: ShortText | None = None
+    place: ShortText | None = None
+
+
 class ChatRequest(BaseModel):
     question: str = Field(min_length=1, max_length=4000)
     well: "WellParams | None" = None
+    history: list[MemoryRecord] = Field(default=[], max_length=MEMORY_TURNS)
+    ui_context: UiContext | None = None
 
 
 class Usage(BaseModel):
@@ -69,6 +103,7 @@ class ChatResponse(BaseModel):
     production: list[dict[str, Any]] = []
     simulation: dict[str, Any] | None = None
     vision: VisionResult | None = None
+    memory: MemoryRecord | None = None
 
 
 class ErrorResponse(BaseModel):
@@ -219,7 +254,8 @@ class WellSweepOptions(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     controls: list[Literal["rate", "bhp"]] = Field(
-        default=["rate", "bhp"], min_length=1, max_length=2)
+        default=["rate", "bhp"],
+         min_length=1, max_length=2)
     n_rate: int = Field(10, ge=3, le=WELLSIM_MAX_N_RATE)
     n_bhp: int = Field(8, ge=3, le=WELLSIM_MAX_N_BHP)
     rate_min: float | None = Field(None, gt=0)

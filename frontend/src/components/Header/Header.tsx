@@ -1,17 +1,22 @@
 import React from 'react';
 import { useLanguage } from '../../i18n/useLanguage';
-import { Globe } from 'lucide-react';
+import { Gauge, Globe } from 'lucide-react';
+import crocolAvatar from '../../assets/Crocol_Avatar.jpg';
 
 interface HeaderProps {
   onOpenKnowMore: () => void;
   onOpenANH: () => void;
   onFocusChat: () => void;
+  onOpenWellSim: () => void;
+  wellSimOpen: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onOpenKnowMore,
   onOpenANH,
-  onFocusChat
+  onFocusChat,
+  onOpenWellSim,
+  wellSimOpen
 }) => {
   const { language, toggleLanguage, t } = useLanguage();
 
@@ -22,7 +27,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Avatar */}
         <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#F2E8D5] bg-[#24180F] shadow-sm shrink-0">
           <img
-            src="/assets/crocol-avatar.webp"
+            src={crocolAvatar}
             alt="Crocol Mascot Avatar"
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
@@ -59,6 +64,23 @@ export const Header: React.FC<HeaderProps> = ({
           className="text-xs md:text-sm font-semibold tracking-wide text-[#F2E8D5] hover:text-[#D9B36C] transition-colors"
         >
           {t.navANH}
+        </button>
+
+        {/* Divider */}
+        <div className="hidden md:block h-5 w-px bg-[#F2E8D5]/40" />
+
+        {/* Well simulator */}
+        <button
+          onClick={onOpenWellSim}
+          aria-pressed={wellSimOpen}
+          className={`flex items-center gap-1 px-2 py-0.5 rounded-md border text-xs md:text-sm font-semibold transition-colors ${
+            wellSimOpen
+              ? 'bg-[#D9B36C] text-[#24180F] border-[#D9B36C]'
+              : 'border-[#F2E8D5]/60 text-[#F2E8D5] hover:text-[#D9B36C] hover:border-[#D9B36C]'
+          }`}
+        >
+          <Gauge className="w-3.5 h-3.5" />
+          {t.wsHeaderButton}
         </button>
       </div>
 

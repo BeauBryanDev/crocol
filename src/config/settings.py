@@ -41,7 +41,7 @@ APP_VERSION = "0.1.0"
 VISION_MODEL = ROOT / "geocrack_cnn.onnx"
 VISION_CONFIG = ROOT / "model_config_mobilenet_v2.json"
 VISION_LABEL = "MobileNetV2-UNet"
-VISION_THRESHOLD = 0.35
+VISION_THRESHOLD = 0.3
 VISION_MAX_SIDE = 1024
 VISION_THREADS = 2
 VISION_BATCH = 8
@@ -67,10 +67,14 @@ RATE_PER_MINUTE = 1
 RATE_PER_DAY = 12
 OTHER_RATE_PER_MINUTE = 60
 GLOBAL_QUESTIONS_PER_DAY = 30
-GLOBAL_TOKENS_PER_DAY = 800_000
+GLOBAL_TOKENS_PER_DAY = 1_000_000
+RUN_TOKEN_ESTIMATE = 40_000
 MAX_CONCURRENT_RUNS = 2
 RUN_WAIT_S = 10.0
 MAX_REQUEST_BYTES = 11 * 1024 * 1024
+
+MEMORY_MAX_AGE_S = 24 * 3600
+MEMORY_FIELD_CHARS = 1200
 
 WELLSIM_LABEL = "Crocol-WellSim-2026"
 WELLSIM_MAX_NR = 50
@@ -108,6 +112,7 @@ class Settings(BaseSettings):
     anthropic_api_key: SecretStr | None = None
     cohere_api_key: SecretStr | None = None
     pg_dsn: SecretStr | None = None
+    croco_memory_key: SecretStr | None = None
     crocol_env: str = "development"
     crocol_cors_origins: str = "http://localhost:5173"
     crocol_trusted_proxy: str | None = None

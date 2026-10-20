@@ -16,6 +16,9 @@ MODELS = {
     "vision": GEMINI_FLASH,
     "interpret": HAIKU,
 }
+EFFORT = {
+    SONNET: "medium",
+}
 FALLBACKS = {
     "grade": HAIKU,
     "verify": HAIKU,
@@ -23,9 +26,9 @@ FALLBACKS = {
     "vision": HAIKU,
 }
 MAX_OUTPUT_TOKENS = {
-    "analyze": 800,
-    "plan": 800,
-    "rewrite": 600,
+    "analyze": 2000,
+    "plan": 1500,
+    "rewrite": 1200,
     "synthesize": 8000,
     "revise": 8000,
     "grade": 1200,
@@ -78,6 +81,18 @@ RERANK_TIMEOUT_S = 6.0
 RERANK_MAX_CHARS = 4000
 OPTIONAL_NODES = ("rerank", "conflict_check", "verify")
 ALLOW_GENERAL_KNOWLEDGE = True
+
+MEMORY_TURNS = 3
+MEMORY_TOKENS = 1500
+DIGEST_TOKENS = 500
+MIN_EVIDENCE_CHUNKS = 6
+CONTEXT_BUDGETS = {
+    "analyze": 4000,
+    "grade": 16000,
+    "synthesize": 24000,
+    "interpret": 8000,
+}
+VOICE_PROMPTS = ("synthesizer", "simulation_analyst")
 RESEARCH_MODE_ENABLED = True
 RESEARCH_RESERVED_CALLS = 3
 CONFLICT_PROPERTIES = ("toc", "tmax", "ro", "thickness", "porosity")

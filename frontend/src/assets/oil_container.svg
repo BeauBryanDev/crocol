@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Industrial petroleum storage container / barrel -->
+  <defs>
+    <linearGradient id="barrelGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3e2723"/>
+      <stop offset="40%" stop-color="#5d4037"/>
+      <stop offset="70%" stop-color="#4e342e"/>
+      <stop offset="100%" stop-color="#271b16"/>
+    </linearGradient>
+    <linearGradient id="lidGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#8d6e63"/>
+      <stop offset="100%" stop-color="#4e342e"/>
+    </linearGradient>
+  </defs>
+  <!-- Main cylinder body -->
+  <path d="M110 130 C110 110, 402 110, 402 130 L402 400 C402 430, 110 430, 110 400 Z" fill="url(#barrelGrad)"/>
+  <!-- Top Rim & Ellipse -->
+  <ellipse cx="256" cy="130" rx="146" ry="36" fill="url(#lidGrad)" stroke="#d9b36c" stroke-width="4"/>
+  <ellipse cx="256" cy="130" rx="128" ry="26" fill="#3e2723" stroke="#f2e8d5" stroke-width="2"/>
+  <circle cx="210" cy="128" r="14" fill="#24180f" stroke="#d9b36c" stroke-width="3"/>
+  <!-- Ribs / hoops -->
+  <path d="M106 200 C150 220, 362 220, 406 200" fill="none" stroke="#d9b36c" stroke-width="8" stroke-linecap="round"/>
+  <path d="M104 290 C150 310, 362 310, 408 290" fill="none" stroke="#d9b36c" stroke-width="8" stroke-linecap="round"/>
+  <!-- Bottom base curve -->
+  <ellipse cx="256" cy="400" rx="146" ry="32" fill="#271b16" stroke="#d9b36c" stroke-width="4"/>
+  <!-- Oil drop emblem -->
+  <path d="M256 220 C256 220, 230 255, 230 274 C230 288, 241 300, 256 300 C271 300, 282 288, 282 274 C282 255, 256 220, 256 220 Z" fill="#d9b36c"/>
+</svg>

@@ -10,6 +10,7 @@ from config.settings import (
     OTHER_RATE_PER_MINUTE,
     RATE_PER_DAY,
     RATE_PER_MINUTE,
+    RUN_TOKEN_ESTIMATE,
     RUN_WAIT_S,
     WELLSIM_RUNS_PER_MINUTE,
     WELLSIM_SWEEPS_PER_DAY,
@@ -19,6 +20,7 @@ from crocol.application.tools.well_simulation import SimulationRunner
 from crocol.application.usecases.ask_questions import AskQuestion
 from crocol.application.usecases.get_entity import GetEntity
 from crocol.application.usecases.get_trace import GetTrace
+from crocol.domains.services.memory import MemorySigner
 from crocol.infrastructure.repository.spatials import PgSpatialStore
 from crocol.infrastructure.repository.traces import PgTraceStore
 from crocol.infrastructure.vision.image_store import LocalImageStore
@@ -51,6 +53,7 @@ class AppContainer:
     slots: RunSlots
     get_entity: GetEntity | None = None
     simulation: SimulationRunner | None = None
+    memory: MemorySigner | None = None
     run_limiter: RateLimiter = field(default_factory=wellsim_run_limiter)
     sweep_limiter: RateLimiter = field(
         default_factory=wellsim_sweep_limiter)
@@ -59,19 +62,22 @@ class AppContainer:
 def build_container(pool: AsyncConnectionPool | None) -> AppContainer:
 
     deps = bootstrap.build_deps(pool)
+    signer = bootstrap.build_memory_signer()
     return AppContainer(
         pool=pool,
-        ask=bootstrap.build_ask(pool, deps),
+        ask=bootstrap.build_ask(pool, deps, signer),
         get_trace=bootstrap.build_get_trace(pool),
         spatial=deps.spatial,
         vision=deps.vision,
         images=LocalImageStore(),
         question_limiter=RateLimiter(RATE_PER_MINUTE, RATE_PER_DAY),
         other_limiter=RateLimiter(OTHER_RATE_PER_MINUTE),
-        spend=SpendCounter(GLOBAL_QUESTIONS_PER_DAY, GLOBAL_TOKENS_PER_DAY),
+        spend=SpendCounter(GLOBAL_QUESTIONS_PER_DAY, GLOBAL_TOKENS_PER_DAY,
+                           run_estimate=RUN_TOKEN_ESTIMATE),
         slots=RunSlots(MAX_CONCURRENT_RUNS, RUN_WAIT_S),
         get_entity=GetEntity(deps.graph) if deps.graph else None,
         simulation=deps.simulation,
+        memory=signer,
     )
 
 

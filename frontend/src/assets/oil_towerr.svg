@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Top Spire / Antenna -->
+  <rect x="247" y="10" width="18" height="50" rx="4" fill="#0288d1"/>
+  <!-- Dome -->
+  <path d="M216 100 C216 55, 296 55, 296 100 Z" fill="#4fc3f7"/>
+  <rect x="189" y="100" width="134" height="34" rx="17" fill="#0288d1"/>
+  <!-- Upper Blue Mast Structure -->
+  <polygon points="206,134 306,134 348,446 164,446" fill="#29b6f6"/>
+  <!-- Outer Framework (Sand/Ivory) -->
+  <polygon points="198,154 314,154 340,424 172,424" fill="#d7ccc8" stroke="#8d6e63" stroke-width="4"/>
+  <!-- Inner windows / truss cutouts -->
+  <!-- Tier 1 -->
+  <polygon points="214,170 298,170 306,240 206,240" fill="#90a4ae"/>
+  <line x1="214" y1="170" x2="306" y2="240" stroke="#cfd8dc" stroke-width="12"/>
+  <line x1="298" y1="170" x2="206" y2="240" stroke="#cfd8dc" stroke-width="12"/>
+  <line x1="206" y1="240" x2="306" y2="240" stroke="#607d8b" stroke-width="8"/>
+  <!-- Tier 2 -->
+  <polygon points="206,248 306,248 316,330 196,330" fill="#90a4ae"/>
+  <line x1="206" y1="248" x2="316" y2="330" stroke="#cfd8dc" stroke-width="14"/>
+  <line x1="306" y1="248" x2="196" y2="330" stroke="#cfd8dc" stroke-width="14"/>
+  <line x1="196" y1="330" x2="316" y2="330" stroke="#607d8b" stroke-width="8"/>
+  <!-- Tier 3 -->
+  <polygon points="196,338 316,338 328,420 184,420" fill="#90a4ae"/>
+  <line x1="196" y1="338" x2="328" y2="420" stroke="#cfd8dc" stroke-width="16"/>
+  <line x1="316" y1="338" x2="184" y2="420" stroke="#cfd8dc" stroke-width="16"/>
+  <!-- Concrete Base -->
+  <polygon points="160,446 352,446 384,482 128,482" fill="#9e9e9e"/>
+  <polygon points="138,446 160,446 128,482 106,482" fill="#757575"/>
+  <!-- Foundation bar -->
+  <rect x="10" y="482" width="492" height="24" rx="12" fill="#d7ccc8"/>
+</svg>

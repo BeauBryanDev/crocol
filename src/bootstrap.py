@@ -1,3 +1,4 @@
+import logging
 import os
 
 os.environ["LANGSMITH_TRACING"] = "false"
@@ -15,7 +16,7 @@ from config.roles import (
     RERANK_MODEL,
     RERANK_TIMEOUT_S,
 )
-from config.settings import get_settings   
+from config.settings import MEMORY_MAX_AGE_S, get_settings
 from crocol.application.agent.graph import build_graph  
 from crocol.application.agent.state import AgentDeps  
 from crocol.application.usecases.ask_questions import (  
@@ -54,6 +55,9 @@ from crocol.infrastructure.vectors.chroma_store import (
 from crocol.infrastructure.vision.onnx_segmenter import (  
     OnnxCrackAnalyzer,
 )
+from crocol.domains.services.memory import MemorySigner
+
+LOGGER = logging.getLogger("crocol.bootstrap")
 
 
 def build_llm() -> RoleRouter:
@@ -107,14 +111,26 @@ def build_agent(pool: AsyncConnectionPool | None = None) -> CompiledStateGraph:
     return build_graph(build_deps(pool))
 
 
+def build_memory_signer() -> MemorySigner | None:
+    """Follow-up memory is off without a key (fail closed)."""
+    key = get_settings().croco_memory_key
+    if key is None:
+        LOGGER.warning("CROCO_MEMORY_KEY not set: follow-up memory is off")
+        return None
+
+    return MemorySigner(key.get_secret_value().encode("utf-8"),
+                        MEMORY_MAX_AGE_S)
+
+
 def build_ask(pool: AsyncConnectionPool | None,
-              deps: AgentDeps | None = None
+              deps: AgentDeps | None = None,
+              signer: MemorySigner | None = None
               ) -> AskQuestion:
     """The ask use case; the caller opens and closes the pool."""
     traces = PgTraceStore(pool) if pool is not None else None
     graph = build_graph(deps or build_deps(pool))
-    
-    return AskQuestion(graph, traces)
+
+    return AskQuestion(graph, traces, signer)
 
 
 def build_get_trace(pool: AsyncConnectionPool | None) -> GetTrace:
