@@ -14,7 +14,9 @@ from config.roles import (
 from config.settings import APP_VERSION, PIPELINE_VERSION
 from crocol.application.agent.state import initial_state
 from crocol.application.ports.trace_store import TraceStore
+from crocol.application.usecases.memory_records import memory_record
 from crocol.domains.models.answers import Answer
+from crocol.domains.services.memory import MemorySigner
 
 LOGGER = logging.getLogger("crocol.usecases.ask")
 JUDGE_ROLES = ("grade", "verify", "conflict")
@@ -125,7 +127,8 @@ def vision_payload(vision: dict | None) -> dict | None:
     }
 
 
-def final_event(trace_id: str, answer: Answer, record: dict) -> dict:
+def final_event(trace_id: str, answer: Answer, record: dict,
+                memory: dict | None = None) -> dict:
 
     return {
         "event": "final",
@@ -145,6 +148,7 @@ def final_event(trace_id: str, answer: Answer, record: dict) -> dict:
         "production": list(answer.production),
         "simulation": answer.simulation,
         "vision": vision_payload(answer.vision),
+        "memory": memory,
     }
 
 
@@ -153,11 +157,19 @@ class AskQuestion:
 
     def __init__(self,
                  graph: Any,
-                 traces: TraceStore | None = None
+                 traces: TraceStore | None = None,
+                 signer: MemorySigner | None = None
                  ) -> None:
 
         self._graph = graph
         self._traces = traces
+        self._signer = signer
+
+    def memory_of(self, state: dict) -> dict | None:
+
+        if self._signer is None or state.get("mode") == "research":
+            return None
+        return self._signer.sign(memory_record(state, int(time.time())))
 
     async def save(self, record: dict) -> None:
 
@@ -172,11 +184,14 @@ class AskQuestion:
     async def stream(self,
                      question: str,
                      image: bytes | None = None,
-                     well: dict | None = None
+                     well: dict | None = None,
+                     history: list[dict] | None = None,
+                     ui_context: dict | None = None
                      ) -> AsyncIterator[dict]:
 
         trace_id = str(uuid.uuid4())
-        state: dict = dict(initial_state(question, image, well))
+        state: dict = dict(initial_state(question, image, well,
+                                         history, ui_context))
         started = time.perf_counter()
         config = {"recursion_limit": RECURSION_LIMIT}
         budget = TOTAL_TIMEOUT_S["research" if RESEARCH_MODE_ENABLED
@@ -199,14 +214,17 @@ class AskQuestion:
         record = record_of(trace_id, state, answer, answer.status,
                            latency_ms)
         await self.save(record)
-        yield final_event(trace_id, answer, record)
+        yield final_event(trace_id, answer, record, self.memory_of(state))
 
     async def ask(self,
                   question: str,
                   image: bytes | None = None,
-                  well: dict | None = None) -> dict:
+                  well: dict | None = None,
+                  history: list[dict] | None = None,
+                  ui_context: dict | None = None) -> dict:
 
         final: dict = {}
-        async for event in self.stream(question, image, well):
+        async for event in self.stream(question, image, well,
+                                       history, ui_context):
             final = event
         return final
