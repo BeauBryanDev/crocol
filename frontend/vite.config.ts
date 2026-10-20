@@ -9,6 +9,8 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss()],
+    // MapLibre spawns its worker with { type: 'module' }.
+    worker: { format: 'es' },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

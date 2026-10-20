@@ -14,7 +14,10 @@ from config.roles import (
 from crocol.application.agent.nodes.fuse import fuse_chunks
 from crocol.application.agent.nodes.grade import grade
 from crocol.application.agent.nodes.rerank import rerank_chunks
-from crocol.application.agent.nodes.retrieve import search_variant
+from crocol.application.agent.nodes.retrieve import (
+    retrieve_production,
+    search_variant,
+)
 from crocol.application.agent.routing import calls_left
 from crocol.application.agent.schemas import ResearchPlan, SubQuestion
 from crocol.application.agent.state import AgentDeps, AgentState, ask
@@ -150,11 +153,16 @@ def sub_index(result: dict) -> int:
     return result["index"]
 
 
-def merged_evidence(results: list[dict]) -> list[Chunk]:
-
+def merged_evidence(results: list[dict],
+                    first: list[Chunk] | None = None) -> list[Chunk]:
+    """Tool passages first, then each sub-question's graded evidence."""
     seen: set[str] = set()
     per_doc: dict[str, int] = {}
     merged: list[Chunk] = []
+    for chunk in first or []:
+        seen.add(chunk.chunk_id)
+        merged.append(replace(chunk, label=f"C{len(merged) + 1}"))
+
     for result in sorted(results, key=sub_index):
         for chunk in result["evidence"]:
             if chunk.chunk_id in seen:
@@ -170,10 +178,22 @@ def merged_evidence(results: list[dict]) -> list[Chunk]:
     return merged
 
 
+async def production_evidence(state: AgentState,
+                              deps: AgentDeps) -> tuple[list[Chunk], dict]:
+    """ANH production series for a research question; no model call."""
+    update, _ = await retrieve_production(state, deps)
+    channel = update["channels"]["production"]
+    if channel["status"] != "ok":
+        return [], update
+
+    return list(channel["lists"][0]), update
+
+
 async def merge(state: AgentState, deps: AgentDeps) -> tuple[dict, dict]:
 
     results = state.get("sub_results") or []
-    evidence = merged_evidence(results)
+    produced, tool_update = await production_evidence(state, deps)
+    evidence = merged_evidence(results, produced)
     gaps = sum(1 for r in results if not r["sufficient"])
     # One uncovered sub-question is a gap the writer mentions, not a
     # partial answer; most of them uncovered is.
@@ -182,6 +202,7 @@ async def merge(state: AgentState, deps: AgentDeps) -> tuple[dict, dict]:
                         if not r["sufficient"] and r["missing"])
 
     update = {
+        **tool_update,
         "chunks": evidence,
         "evidence": evidence,
         "grade": {
@@ -197,5 +218,6 @@ async def merge(state: AgentState, deps: AgentDeps) -> tuple[dict, dict]:
         "evidence": len(evidence),
         "documents": len({c.doc_id for c in evidence}),
         "partial_evidence": update["partial_evidence"],
+        "production_passages": len(produced),
     }
     return update, summary
