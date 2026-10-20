@@ -1,7 +1,17 @@
-from config.roles import ALLOW_GENERAL_KNOWLEDGE
-from crocol.application.agent.schemas import DraftAnswer, render_evidence
+from config.roles import ALLOW_GENERAL_KNOWLEDGE, CONTEXT_BUDGETS
+from crocol.application.agent.context import (
+    digest_block,
+    fit_evidence,
+    ui_block,
+)
+from crocol.application.agent.schemas import (
+    DraftAnswer,
+    load_prompt,
+    render_evidence,
+)
 from crocol.application.agent.state import AgentDeps, AgentState, ask
 from crocol.domains.services.citations import cited_labels
+from crocol.domains.services.token_budget import estimate
 
 LANGUAGES = {
     "es": "Spanish",
@@ -51,18 +61,27 @@ def research_note(state: AgentState) -> str:
     return "\n".join(lines) + "\n\n"
 
 
+def writer_evidence(state: AgentState, header: str) -> list:
+    """Evidence that fits the writer's input budget with its prompt."""
+    fixed = estimate(load_prompt("synthesizer").text) + estimate(header)
+    budget = CONTEXT_BUDGETS["synthesize"] - fixed
+    return fit_evidence(state.get("evidence") or [], budget)
+
+
 def synthesis_request(state: AgentState) -> str:
-    
+
     language = LANGUAGES.get(state.get("language", "es"), "Spanish")
-    
-    return (
+    header = (
         f"ANSWER LANGUAGE: {language}\n"
         f"ALLOW_GENERAL_KNOWLEDGE: {str(ALLOW_GENERAL_KNOWLEDGE).lower()}\n\n"
         f"{partial_note(state)}"
         f"{research_note(state)}"
+        f"{digest_block(state)}"
+        f"{ui_block(state)}"
         f"QUESTION:\n{state['question']}\n\n"
-        f"EVIDENCE:\n{render_evidence(state.get('evidence') or [])}"
     )
+    evidence = writer_evidence(state, header)
+    return f"{header}EVIDENCE:\n{render_evidence(evidence)}"
 
 
 def revision_request(state: AgentState) -> str:

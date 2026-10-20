@@ -1,4 +1,5 @@
-from config.roles import SYNTH_MAX_CHUNKS
+from config.roles import CONTEXT_BUDGETS, SYNTH_MAX_CHUNKS
+from crocol.application.agent.context import fit_evidence
 from crocol.application.agent.schemas import Grade, render_evidence
 from crocol.application.agent.state import AgentDeps, AgentState, ask
 from crocol.domains.services.citations import normalize_labels
@@ -11,10 +12,15 @@ INSUFFICIENT = {
 }
 
 
+def graded_chunks(state: AgentState) -> list:
+
+    return fit_evidence(state.get("chunks") or [], CONTEXT_BUDGETS["grade"])
+
+
 def grade_request(state: AgentState) -> str:
     return (
         f"QUESTION:\n{state['question']}\n\n"
-        f"EVIDENCE:\n{render_evidence(state.get('chunks') or [])}"
+        f"EVIDENCE:\n{render_evidence(graded_chunks(state))}"
     )
 
 

@@ -1,7 +1,8 @@
 import re
 
 from config.roles import MAX_VARIANTS, RESEARCH_MODE_ENABLED
-from config.settings import KG_MAX_ENTITIES
+from config.settings import KG_MAX_ENTITIES, QUESTION_MAX_CHARS
+from crocol.application.agent.context import analysis_request
 from crocol.application.agent.schemas import Analysis
 from crocol.application.agent.state import (
     AgentDeps,
@@ -36,6 +37,18 @@ def fallback_analysis(question: str) -> Analysis:
     )
 
 
+def resolved_question(state: AgentState, analysis: Analysis) -> str:
+    """The follow-up rewritten as a full question, when there is memory."""
+    question = state["question"]
+    standalone = " ".join((analysis.standalone_question or "").split())
+    if not state.get("history") or not analysis.follows_up:
+        return question
+    if not standalone or len(standalone) > QUESTION_MAX_CHARS:
+        return question
+
+    return standalone
+
+
 def unique_variants(question: str,
                     extra: list[str]
                     ) -> list[str]:
@@ -56,16 +69,18 @@ def unique_variants(question: str,
 async def analyze(state: AgentState, 
                   deps: AgentDeps) -> tuple[dict, dict]:
     
-    question = state["question"]
-    parsed, usage = await ask(deps, 
+    parsed, usage = await ask(deps,
                               "analyze",
-                              "analyst", 
-                              question, Analysis)
+                              "analyst",
+                              analysis_request(state), Analysis)
     analysis = parsed if isinstance(parsed, Analysis) else None
     fallback = analysis is None
-    
+
     if analysis is None:
-        analysis = fallback_analysis(question)
+        analysis = fallback_analysis(state["question"])
+
+    question = resolved_question(state, analysis)
+    follows_up = question != state["question"]
 
     requested_mode = analysis.mode
     mode = requested_mode if RESEARCH_MODE_ENABLED else "quick"
@@ -79,6 +94,9 @@ async def analyze(state: AgentState,
         analysis.query_type,
     )
     update = {
+        "question": question,
+        "follows_up": follows_up,
+        "prior_coverage": analysis.prior_coverage if follows_up else "",
         "language": analysis.language,
         "mode": mode,
         "intents": analysis.intents,
@@ -105,6 +123,8 @@ async def analyze(state: AgentState,
         "places": len(analysis.places),
         "entities": len(analysis.entities),
         "fallback": fallback,
+        "history": len(state.get("history") or []),
+        "follows_up": follows_up,
     }
     
     return update, summary

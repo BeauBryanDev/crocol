@@ -1,6 +1,7 @@
 import dataclasses
 
 from config.exceptions import CrocolError
+from crocol.application.agent.context import wellsim_history
 from crocol.application.agent.schemas import SimulationAnswer, render_evidence
 from crocol.application.agent.state import (
     AgentDeps,
@@ -50,7 +51,8 @@ async def simulate(state: AgentState,
 
 def interpretation_request(state: AgentState) -> str:
 
-    return (f"QUESTION:\n{state['question']}\n\n"
+    return (f"{wellsim_history(state)}"
+            f"QUESTION:\n{state['question']}\n\n"
             f"EVIDENCE:\n{render_evidence(state['evidence'])}")
 
 
@@ -70,6 +72,7 @@ async def interpret(state: AgentState,
         "text": parsed.text,
         "cited": cited_labels(parsed.text),
         "insufficient": False,
+        "summary": parsed.summary,
     }
     summary = {
         "ok": True,
