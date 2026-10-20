@@ -14,6 +14,7 @@ from crocol.application.ports.reranker import Reranker
 from crocol.application.ports.spatial import SpatialSearch
 from crocol.application.ports.vector_search import VectorSearch
 from crocol.application.ports.vision import CrackAnalyzer
+from crocol.application.tools.well_simulation import SimulationRunner
 from crocol.domains.models.answers import Answer
 from crocol.domains.models.chunks import Chunk
 from crocol.domains.models.claims import Claim
@@ -65,8 +66,12 @@ class AgentState(TypedDict, total=False):
     sub_questions: list[dict]
     sub_results: Annotated[list[dict], operator.add]
     image: bytes | None
+    well_params: dict[str, Any] | None
+    simulation: dict[str, Any] | None
     vision_report: CrackReport | None
     overlay: bytes
+    mask: bytes
+    vision_interpretation: dict[str, Any] | None
     answer: Answer | None
     partial: bool
     llm_calls: Annotated[int, operator.add]
@@ -85,10 +90,12 @@ class AgentDeps:
     vision: CrackAnalyzer | None = None
     reranker: Reranker | None = None
     production: ProductionSearch | None = None
+    simulation: SimulationRunner | None = None
 
 
 def initial_state(question: str,
-                  image: bytes | None = None) -> AgentState:
+                  image: bytes | None = None,
+                  well: dict[str, Any] | None = None) -> AgentState:
     return {
         "question": question,
         "language": "es",
@@ -117,8 +124,12 @@ def initial_state(question: str,
         "sub_questions": [],
         "sub_results": [],
         "image": image,
+        "well_params": well,
+        "simulation": None,
         "vision_report": None,
         "overlay": b"",
+        "mask": b"",
+        "vision_interpretation": None,
         "answer": None,
         "partial": False,
         "llm_calls": 0,

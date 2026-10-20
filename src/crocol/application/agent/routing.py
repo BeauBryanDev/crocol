@@ -35,6 +35,16 @@ def without_evidence(state: AgentState) -> str:
     return "abstain"
 
 
+def entry(state: AgentState) -> str:
+    """A well attached to the question skips the whole research chain."""
+    return "simulate" if state.get("well_params") else "analyze"
+
+
+def after_simulate(state: AgentState) -> str:
+
+    return "interpret" if state.get("evidence") else "finalize"
+
+
 def after_analyze(state: AgentState) -> list[str]:
 
     if state.get("mode") == "research":

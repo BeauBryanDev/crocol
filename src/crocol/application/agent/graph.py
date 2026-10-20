@@ -20,6 +20,7 @@ from crocol.application.agent.nodes.retrieve import (
     retrieve_text,
 )
 from crocol.application.agent.nodes.rewrite import rewrite
+from crocol.application.agent.nodes.simulation import interpret, simulate
 from crocol.application.agent.nodes.synthesize import revise, synthesize
 from crocol.application.agent.nodes.verify import verify
 from crocol.application.agent.nodes.vision import retrieve_vision
@@ -51,6 +52,8 @@ NODES: dict[str, NodeFn] = {
     "investigate": investigate,
     "merge": merge,
     "conflict_check": conflict_check,
+    "simulate": simulate,
+    "interpret": interpret,
 }
 
 
@@ -94,14 +97,18 @@ def bind(name: str, node: NodeFn, deps: AgentDeps) -> Runner:
 
 
 def build_graph(deps: AgentDeps) -> CompiledStateGraph:
-    """Quick loop plus the research fan-out (plan, investigate, merge)."""
+    """Quick loop, research fan-out, and the well-simulation shortcut."""
     graph = StateGraph(AgentState)
     
     for name, node in NODES.items():
         graph.add_node(name, bind(name, node, deps))
 
     retrievers = list(routing.RETRIEVERS)
-    graph.add_edge(START, "analyze")
+    graph.add_conditional_edges(START, routing.entry,
+                                ["simulate", "analyze"])
+    graph.add_conditional_edges("simulate", routing.after_simulate,
+                                ["interpret", "finalize"])
+    graph.add_edge("interpret", "finalize")
     graph.add_conditional_edges("analyze",
                                 routing.after_analyze,
                                 [*retrievers, "plan"])

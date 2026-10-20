@@ -30,6 +30,19 @@ def vision_request(state: AgentState, outputs: str) -> str:
     )
 
 
+def interpretation_of(parsed: object) -> dict | None:
+    """Gemini's reading of the photo, shown to the user, never persisted."""
+    if not isinstance(parsed, VisualDiagnosis):
+        return None
+    return {
+        "is_rock": parsed.is_rock,
+        "rock_description": parsed.rock_description,
+        "diagnosis": parsed.diagnosis,
+        "fluid_flow": parsed.fluid_flow,
+        "confidence": parsed.confidence,
+    }
+
+
 def failed(state: AgentState, reason: str) -> tuple[dict, dict]:
 
     channel = ChannelResult(attempt=state.get("attempts", 0),
@@ -72,6 +85,8 @@ async def retrieve_vision(state: AgentState,
         "channels": {"vision": channel},
         "vision_report": report,
         "overlay": analysis.overlay_webp,
+        "mask": analysis.mask_webp,
+        "vision_interpretation": interpretation_of(parsed),
         "llm_calls": 1,
         "llm_usage": [usage],
     }

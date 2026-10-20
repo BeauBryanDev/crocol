@@ -80,7 +80,7 @@ def without_suggestions(text: str) -> str:
 
 # General only function I do not want my Agent to cited every single time.
 # I want to use this function to check if the text is a general only text.
-def general_general_only(text: str) -> bool:
+def general_only(text: str) -> bool:
     """Check if the text is a general only text."""
     labels = cited_labels(text)
     return bool(labels) and set(labels) == {KG}
@@ -90,10 +90,10 @@ def corpus_text(text: str) -> str:
     """Checkable text: no suggestions, no [KG] paragraphs or sentences."""
     kept = []
     for paragraph in PARAGRAPH_RE.split(without_suggestions(text)):
-        if general_general_only(paragraph):
+        if general_only(paragraph):
             continue
         for sentence in sentences(paragraph):
-            if not general_general_only(sentence):
+            if not general_only(sentence):
                 kept.append(sentence)
     return " ".join(part for part in kept if part.strip())
 

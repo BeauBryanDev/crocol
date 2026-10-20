@@ -73,6 +73,11 @@ class DraftAnswer(BaseModel):
     insufficient: bool = False
 
 
+class SimulationAnswer(BaseModel):
+    language: Literal["es", "en"]
+    text: str
+
+
 class ClaimCheck(BaseModel):
     claim: str
     labels: list[str]

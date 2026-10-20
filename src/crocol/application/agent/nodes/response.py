@@ -1,3 +1,4 @@
+import dataclasses
 import re
 
 from crocol.application.agent.state import AgentDeps, AgentState, verify_failed
@@ -12,8 +13,10 @@ from crocol.domains.services.citations import (
     render_citation,
     replace_labels,
 )
+from crocol.domains.services.paragraph_citations import cap_citations
 
-MESSAGES = {
+MESSAGES = { # dictionary od default message to help agent as error answers EN,SP.
+
     "es": {
         "abstain": "No encontré evidencia suficiente en el corpus para "
                    "responder esta pregunta.",
@@ -56,6 +59,11 @@ MESSAGES = {
                             "no cubre todos los aspectos de la pregunta.",
         "ai": "Parte de la evidencia proviene de informes generados por IA "
               "no verificados.",
+        "simulation": "Simulación Crocol-WellSim-2026 simplificada: flujo "
+                      "monofásico de petróleo subsaturado, sin agua ni gas "
+                      "libre, PVT constante; es una estimación de "
+                      "referencia, no un diseño de desarrollo.",
+        "simulation_failed": "No se pudo ejecutar la simulación del pozo:",
     },
     "en": {
         "abstain": "I did not find enough evidence in the corpus to answer "
@@ -94,6 +102,11 @@ MESSAGES = {
         "partial_evidence": "Answer based on partial evidence: the corpus "
                             "does not cover every aspect of the question.",
         "ai": "Some evidence comes from unverified AI-generated reports.",
+        "simulation": "Simplified Crocol-WellSim-2026 simulation: "
+                      "single-phase undersaturated oil, no free water or "
+                      "gas, constant PVT; a screening estimate, not a "
+                      "development design.",
+        "simulation_failed": "The well simulation could not run:",
     },
 }
 CLOSEST_SOURCES = 3
@@ -247,6 +260,12 @@ def caveats_for(state: AgentState,
         caveats.append(text["spatial_failed"])
     if any(c.doc_type == "ai_research_report" for c in cited):
         caveats.append(text["ai"])
+    if any(c.doc_type == "simulation_result" for c in cited):
+        caveats.append(text["simulation"])
+    simulation = channels.get("simulation")
+    if simulation is not None and simulation["status"] == "error":
+        caveats.append(f"{text['simulation_failed']} "
+                       f"{simulation['detail']}")
         
     return caveats
 
@@ -261,6 +280,18 @@ def status_of(state: AgentState, draft: dict | None) -> str:
     return "answered"
 
 
+def vision_of(state: AgentState) -> dict | None:
+    """CNN report, transparent mask and Gemini reading for the results panel."""
+    report = state.get("vision_report")
+    if report is None:
+        return None
+    return {
+        "report": dataclasses.asdict(report),
+        "mask_webp": state.get("mask") or b"",
+        "interpretation": state.get("vision_interpretation"),
+    }
+
+
 async def finalize(state: AgentState,
                    deps: AgentDeps
                    ) -> tuple[dict, dict]:
@@ -272,11 +303,13 @@ async def finalize(state: AgentState,
     
     if draft is not None:
         text, removed, unverified = drop_failing(draft["text"], state)
+        text = cap_citations(text)
         
     if draft is None:
+        text = messages(state)["partial"]
         sources = closest_sources(state)
-        text = f"{messages(state)['partial']}\n\n{messages(state)['closest']} "
-        text += "; ".join(sources)
+        if sources:
+            text += f"\n\n{messages(state)['closest']} " + "; ".join(sources)
 
     citations = citations_for(text, chunks)
     rendered = {c.label: c.rendered for c in citations}
@@ -291,6 +324,7 @@ async def finalize(state: AgentState,
         references=tuple(await references_with_kg(state, citations, 
                                                   chunks,
                                                   deps, general)),
+        # Be Honest about knowledge warnings to user.
         caveats=tuple(caveats_for(state, removed,
                                   unverified, cited,
                                   general)),
@@ -298,6 +332,8 @@ async def finalize(state: AgentState,
         partial=bool(state.get("partial")) or draft is None,
         overlay_webp=state.get("overlay") or b"",
         production=tuple(state.get("production") or []),
+        simulation=state.get("simulation"),
+        vision=vision_of(state),
     )
     summary = {
         "answer_status": answer.status,

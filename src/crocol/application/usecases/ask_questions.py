@@ -113,6 +113,18 @@ def timeout_answer(state: dict) -> Answer:
     return Answer(text=text, status="partial", partial=True)
 
 
+def vision_payload(vision: dict | None) -> dict | None:
+    """Mask bytes as base64, like the overlay; sent, never saved."""
+    if vision is None:
+        return None
+    mask = vision["mask_webp"]
+    return {
+        "report": vision["report"],
+        "mask_webp_b64": base64.b64encode(mask).decode() if mask else None,
+        "interpretation": vision["interpretation"],
+    }
+
+
 def final_event(trace_id: str, answer: Answer, record: dict) -> dict:
 
     return {
@@ -131,6 +143,8 @@ def final_event(trace_id: str, answer: Answer, record: dict) -> dict:
         "overlay_webp_b64": base64.b64encode(answer.overlay_webp).decode()
         if answer.overlay_webp else None,
         "production": list(answer.production),
+        "simulation": answer.simulation,
+        "vision": vision_payload(answer.vision),
     }
 
 
@@ -157,11 +171,12 @@ class AskQuestion:
 
     async def stream(self,
                      question: str,
-                     image: bytes | None = None
+                     image: bytes | None = None,
+                     well: dict | None = None
                      ) -> AsyncIterator[dict]:
 
         trace_id = str(uuid.uuid4())
-        state: dict = dict(initial_state(question, image))
+        state: dict = dict(initial_state(question, image, well))
         started = time.perf_counter()
         config = {"recursion_limit": RECURSION_LIMIT}
         budget = TOTAL_TIMEOUT_S["research" if RESEARCH_MODE_ENABLED
@@ -188,9 +203,10 @@ class AskQuestion:
 
     async def ask(self,
                   question: str,
-                  image: bytes | None = None) -> dict:
+                  image: bytes | None = None,
+                  well: dict | None = None) -> dict:
 
         final: dict = {}
-        async for event in self.stream(question, image):
+        async for event in self.stream(question, image, well):
             final = event
         return final
