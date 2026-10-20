@@ -1,0 +1,90 @@
+{
+  "conceptual": [
+    {
+      "question": "¿Cuál es el ambiente de depósito de la Formación Mugrosa?",
+      "old": 1,
+      "new": 0
+    },
+    {
+      "question": "What controls the thermal maturity of the La Luna Formation in the Middle Magdalena Valley?",
+      "old": 0,
+      "new": 0
+    },
+    {
+      "question": "¿Cómo evolucionó tectónicamente la cuenca del Valle Medio del Magdalena durante el Cenozoico?",
+      "old": 0,
+      "new": 0
+    },
+    {
+      "question": "¿Cuáles son las rocas generadoras del sistema petrolífero del Valle Medio del Magdalena?",
+      "old": 0,
+      "new": 0
+    },
+    {
+      "question": "Describe the lithofacies and depositional environment of the Galembo Member.",
+      "old": 0,
+      "new": 0
+    }
+  ],
+  "numeric": [
+    {
+      "question": "¿Cuál es el porcentaje de metano del gas en el pozo Llanito 91?",
+      "old_cards": 7,
+      "new_cards": 5,
+      "old_rank": 1,
+      "new_rank": 1
+    },
+    {
+      "question": "What is the matrix porosity of the Tablazo limestones measured in the Crisol 1 well?",
+      "old_cards": 8,
+      "new_cards": 5,
+      "old_rank": 1,
+      "new_rank": 1
+    },
+    {
+      "question": "¿Qué valor de resistividad del agua de formación (Rw) se usó en la evaluación petrofísica de La Luna?",
+      "old_cards": 5,
+      "new_cards": 5,
+      "old_rank": 2,
+      "new_rank": 2
+    },
+    {
+      "question": "What is the total gas content of La Luna canister sample QLL-40?",
+      "old_cards": 10,
+      "new_cards": 5,
+      "old_rank": 1,
+      "new_rank": 2
+    },
+    {
+      "question": "¿Cuál es el TOC y la Tmax de la Formación Tablazo según Martínez Alarcón?",
+      "old_cards": 7,
+      "new_cards": 5,
+      "old_rank": 2,
+      "new_rank": 1
+    }
+  ],
+  "scope": [
+    {
+      "question": "¿Qué establece el contrato VMM 53 sobre el programa exploratorio mínimo?",
+      "core": [
+        "VMM_Basin"
+      ],
+      "all": [
+        "ANH_Contracts",
+        "ANH_Regulatory"
+      ]
+    },
+    {
+      "question": "¿Qué significa abandono de un pozo según el glosario de la ANH?",
+      "core": [
+        "VMM_Basin"
+      ],
+      "all": [
+        "ANH_Contracts",
+        "ANH_Regulatory",
+        "VMM_Basin"
+      ]
+    }
+  ],
+  "passed": true
+}

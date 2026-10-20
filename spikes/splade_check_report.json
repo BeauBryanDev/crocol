@@ -1,0 +1,49 @@
+{
+  "summary": {
+    "dense": {
+      "hit@5": 0.933,
+      "mrr@5": 0.811,
+      "n": 30
+    },
+    "bm25": {
+      "hit@5": 1.0,
+      "mrr@5": 0.95,
+      "n": 30
+    },
+    "splade": {
+      "hit@5": 0.9,
+      "mrr@5": 0.812,
+      "n": 30
+    },
+    "rrf_dense_bm25": {
+      "hit@5": 1.0,
+      "mrr@5": 0.94,
+      "n": 30
+    },
+    "rrf_dense_bm25_splade": {
+      "hit@5": 0.967,
+      "mrr@5": 0.883,
+      "n": 30
+    }
+  },
+  "split_hit@5": {
+    "curated_probes": {
+      "dense": 0.9,
+      "bm25": 1.0,
+      "splade": 1.0,
+      "rrf_dense_bm25": 1.0,
+      "rrf_dense_bm25_splade": 1.0
+    },
+    "known_item": {
+      "dense": 0.95,
+      "bm25": 1.0,
+      "splade": 0.85,
+      "rrf_dense_bm25": 1.0,
+      "rrf_dense_bm25_splade": 0.95
+    }
+  },
+  "median_latency_ms": {
+    "dense_bm25_server": 256,
+    "splade": 578
+  }
+}

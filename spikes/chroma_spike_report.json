@@ -1,0 +1,57 @@
+{
+  "results": {
+    "C2_two_sparse_indexes": {
+      "ok": false,
+      "detail": "ValueError: Cannot enable sparse vector index on key 'sparse'. A sparse vector index is already enabled on key 'bm25'. Only one sparse vector index is allowed per collection."
+    },
+    "C4_metadata_types": {
+      "ok": true,
+      "detail": "str/int/bool/float + lexical_text up to 5192 chars; count=200"
+    },
+    "C4_get_by_ids": {
+      "ok": true,
+      "detail": "50 ids, median 386 ms"
+    },
+    "C1_rrf_three_rankings": {
+      "ok": false,
+      "detail": "2 rankings fused server-side, 282 ms, top=['spike-0002', 'spike-0135', 'spike-0174']"
+    },
+    "C3_probe_scores": {
+      "ok": true,
+      "detail": {
+        "dense": {
+          "hit@5": 0.8,
+          "mrr@5": 0.74,
+          "n": 25
+        },
+        "bm25_raw": {
+          "hit@5": 0.96,
+          "mrr@5": 0.89,
+          "n": 25
+        },
+        "bm25_norm": {
+          "hit@5": 1.0,
+          "mrr@5": 0.94,
+          "n": 25
+        },
+        "rrf_dense_bm25": {
+          "hit@5": 1.0,
+          "mrr@5": 0.826,
+          "n": 25
+        }
+      }
+    },
+    "C3_normalized_bm25_gain": {
+      "ok": true,
+      "detail": "hit@5 gain normalized vs raw: +0.04"
+    }
+  },
+  "timings_ms": {
+    "embed_docs_ms": 7583,
+    "add_ms": 10251,
+    "get_50_ids_ms_median": 386,
+    "rrf3_search_ms": 282
+  },
+  "dense_model": "text-embedding-3-large",
+  "dense_dims": 1536
+}
