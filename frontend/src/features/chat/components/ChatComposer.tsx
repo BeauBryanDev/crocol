@@ -10,6 +10,7 @@ interface ChatComposerProps {
   maxImageBytes: number;
   contextFormationName?: string | null;
   onClearContext?: () => void;
+  droppedFile?: { file: File; id: number } | null;
 }
 
 export const ChatComposer: React.FC<ChatComposerProps> = ({
@@ -18,7 +19,8 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   maxChars,
   maxImageBytes,
   contextFormationName,
-  onClearContext
+  onClearContext,
+  droppedFile
 }) => {
   const { t } = useLanguage();
   const [text, setText] = useState('');
@@ -26,6 +28,16 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [hint, setHint] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const textRef = useRef<HTMLTextAreaElement>(null);
+
+  const TEXTAREA_MAX_PX = 160;
+
+  const syncTextareaHeight = () => {
+    const el = textRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, TEXTAREA_MAX_PX)}px`;
+  };
 
   useEffect(() => {
     if (!image) {
@@ -45,10 +57,8 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     if (fileRef.current) fileRef.current.value = '';
   };
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
+  const acceptFile = (file: File) => {
     setHint(null);
-    if (!file) return;
     if (!IMAGE_MIME_TYPES.includes(file.type)) {
       setHint(t.imageFormat);
       clearImage();
@@ -62,6 +72,19 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     setImage(file);
   };
 
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) acceptFile(file);
+  };
+
+  useEffect(() => {
+    if (droppedFile && !isLoading) acceptFile(droppedFile.file);
+  }, [droppedFile]);
+
+  useEffect(() => {
+    syncTextareaHeight();
+  }, [text]);
+
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (isLoading) return;
@@ -73,6 +96,13 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
     onSendMessage(trimmed, image);
     setText('');
     clearImage();
+    requestAnimationFrame(syncTextareaHeight);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return;
+    e.preventDefault();
+    handleSubmit();
   };
 
   return (
@@ -108,7 +138,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
 
       {hint && <p className="mb-1.5 text-[10px] text-[#e57373]">{hint}</p>}
 
-      <form onSubmit={handleSubmit} className="flex items-center gap-2">
+      <form onSubmit={handleSubmit} className="flex items-end gap-2">
         <input
           ref={fileRef}
           type="file"
@@ -129,16 +159,19 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
           <Paperclip className="w-4 h-4" />
         </button>
 
-        <div className="relative flex-1">
-          <input
+        <div className="relative flex-1 min-w-0">
+          <textarea
+            ref={textRef}
             id="crocol-chat-input"
-            type="text"
+            rows={2}
             value={text}
             onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder={t.chatPlaceholder}
             disabled={isLoading}
             maxLength={maxChars}
-            className="w-full px-3.5 py-2 rounded-md bg-[#18100a] border border-[#F2E8D5]/40 text-xs text-[#F2E8D5] placeholder-[#D9B36C]/60 focus:outline-hidden focus:border-[#D9B36C] focus:ring-1 focus:ring-[#D9B36C] transition-all disabled:opacity-60"
+            aria-label={t.chatPlaceholder}
+            className="block w-full min-h-[2.75rem] max-h-40 resize-none overflow-y-auto px-3.5 py-2.5 rounded-md bg-[#18100a] border border-[#F2E8D5]/40 text-sm leading-normal text-[#F2E8D5] placeholder-[#D9B36C]/60 focus:outline-hidden focus:border-[#D9B36C] focus:ring-1 focus:ring-[#D9B36C] transition-all disabled:opacity-60"
           />
         </div>
 

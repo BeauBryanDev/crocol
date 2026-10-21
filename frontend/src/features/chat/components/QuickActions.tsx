@@ -44,7 +44,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ onActionClick, disab
       id: 'production',
       label: t.quickActionProduction,
       icon: BarChart3,
-      prompt: language === 'es' ? '¿Qué reservas de petróleo y gas reporta la ANH para el VMM?' : 'What oil and gas reserves does the ANH report for the VMM?'
+      prompt: language === 'es' ? '¿Cómo ha evolucionado la producción de crudo y gas del campo Casabe en 2025 y 2026?' : 'How have oil and gas production evolved at the Casabe field in 2025 and 2026?'
     },
     {
       id: 'docs',
