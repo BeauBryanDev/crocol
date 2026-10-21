@@ -72,12 +72,14 @@ def sha256(path, block=1 << 20):
     with path.open("rb") as handle:
         while chunk := handle.read(block):
             digest.update(chunk)
+            
     return digest.hexdigest()
 
 
 def language_counts(text):
     words = [w.lower() for w in WORD_RE.findall(text)]
     hits = {lang: sum(1 for w in words if w in vocab) for lang, vocab in STOPWORDS.items()}
+    
     return len(words), hits
 
 
@@ -101,12 +103,17 @@ def garbled_count(text):
 
 
 def figure_regions(page):
+    
     page_area = abs(page.rect) or 1.0
     regions = []
+    
     for info in page.get_image_info():
+        
         bbox = pymupdf.Rect(info["bbox"]) & page.rect
+        
         if FIGURE_MIN_IMAGE_AREA <= abs(bbox) / page_area <= FIGURE_MAX_AREA:
             regions.append(bbox)
+            
     drawings = page.get_drawings()
     if not drawings:
         return regions, 0

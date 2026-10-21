@@ -503,7 +503,10 @@ def main():
     with output.open("w", encoding="utf-8") as sink:
         for source_path in targets:
             meta = metadata[source_path]
-            row = {"source_path": source_path, "collection": meta.get("collection"), "doc_type": meta.get("doc_type")}
+            row = {"source_path": source_path, 
+                   "collection": meta.get("collection"),
+                   "doc_type": meta.get("doc_type")
+                   }
             if meta.get("scope") == "excluded":
                 row["status"] = "excluded"
                 report.append(row)
@@ -519,6 +522,7 @@ def main():
                     f"# References: {meta.get('title', '')}\n\nsource_path: {source_path}\n\n"
                     + "\n\n".join(chunker.references) + "\n", encoding="utf-8")
             sizes = [r["tokens"] for r in records if r["chunk_type"] == "text"]
+            
             row.update({
                 "status": "ok", "strategy": chunker.strategy, "chunks": len(records),
                 "text": chunker.stats["text"], "table": chunker.stats["table"],

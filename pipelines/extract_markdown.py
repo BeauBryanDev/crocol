@@ -236,7 +236,9 @@ def drop_lines(block, keys):
     rect = pymupdf.Rect(kept[0][1])
     for _, r in kept[1:]:
         rect |= r
-    return dict(block, lines=[t for t, _ in kept], line_rects=[r for _, r in kept], rect=rect)
+    return dict(block, lines=[t for t, _ in kept],
+                line_rects=[r for _, r in kept], 
+                rect=rect)
 
 
 def drop_margin_lines(block, height):

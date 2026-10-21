@@ -1,0 +1,156 @@
+{
+ "seed": 42,
+ "source": "rag.chunks VMM_Basin core text 250-900 tokens",
+ "questions": {
+  "c0bae678b7f2abe7": {
+   "question": "Which rock units does the study's north-south structural correlation link together?",
+   "english": true,
+   "citation": "Mantilla Cañas & Rico Cárdenas, 2022"
+  },
+  "24bc2e91bd04ea1e": {
+   "question": "¿Qué tipos de roca aparecen en los segmentos 5 y 6 de la columna, y cómo se presentan sus capas?",
+   "english": false,
+   "citation": "Martínez Carrillo & Mendoza Blanco, 2012"
+  },
+  "0a6ebdf3f644adf1": {
+   "question": "¿Cómo mide el resistómetro SR715/720 la impedancia de una muestra y qué pasos hay que seguir antes de tomar la lectura?",
+   "english": false,
+   "citation": "Cárdenas Ospina & Ramírez Trujillo, 2015"
+  },
+  "e1b86c06a07acfca": {
+   "question": "What does the high feldspar content in the Mugrosa and Colorado sandstones indicate about the level of erosion in the Central Cordillera?",
+   "english": true,
+   "citation": "Sarmiento, 2011"
+  },
+  "54bd6ded03153be4": {
+   "question": "¿Por qué es necesario usar guantes desechables al manipular la muestra antes de medir su permeabilidad al gas?",
+   "english": false,
+   "citation": "Cárdenas Ospina & Ramírez Trujillo, 2015"
+  },
+  "4b40acafeeef460f": {
+   "question": "¿Qué tamaño tienen los foraminíferos planctónicos encontrados en la caliza mudstone gris oscura y cómo se observan bajo el microscopio?",
+   "english": false,
+   "citation": "Etayo-Serna et al., 2019"
+  },
+  "45bc0925d3c8cb5c": {
+   "question": "What steps were taken to build the structural framework for the Mugrosa Formation model, and how were the depth horizons tied to well tops?",
+   "english": true,
+   "citation": "Herrera Otero, 2016"
+  },
+  "2c5337eebd6abde7": {
+   "question": "¿Qué clasificación tiene la roca de la capa H y cuánto cuarzo contiene?",
+   "english": false,
+   "citation": "Etayo-Serna et al., 2019"
+  },
+  "e08901933153713c": {
+   "question": "¿Qué evidencias de bioperturbación presenta la capa III´ del Miembro Zapatoca, y qué organismos las dejaron?",
+   "english": false,
+   "citation": "Etayo-Serna et al., 2019"
+  },
+  "21f9917f81deab36": {
+   "question": "What minimum rig capacity and camp and support services must a contractor provide for drilling a 6,300-foot stratigraphic well under the ANH design?",
+   "english": true,
+   "citation": "Agencia Nacional de Hidrocarburos (ANH), 2020"
+  },
+  "cef636ae9f37e7fb": {
+   "question": "¿Qué tipo de rocas forman el Miembro Lagunetas y qué espesor tiene?",
+   "english": false,
+   "citation": "Etayo-Serna et al., 2019"
+  },
+  "e19880d648c8282d": {
+   "question": "¿Qué ambiente de depósito sugieren los bivalvos imbricados de la caliza que aparece en el techo del segmento 1 de la Formación Pujamana?",
+   "english": false,
+   "citation": "Etayo-Serna et al., 2019"
+  },
+  "a4d57060c53de7f7": {
+   "question": "Which formation is considered to hold the largest hydrocarbon volumes within the La Luna-Mugrosa petroleum system, and why is that system named after it?",
+   "english": true,
+   "citation": "Sarmiento, 2011"
+  },
+  "1e12fa1f8df4672f": {
+   "question": "¿Cuáles son las características sedimentarias de los tres miembros de la Formación La Luna en la cuenca del Valle Medio del Magdalena, y qué indican sobre el ambiente de depósito de cada uno?",
+   "english": false,
+   "citation": "Rueda Acevedo, 2016"
+  },
+  "b23634538f878f4c": {
+   "question": "¿Qué cambios históricos y tendencias actuales han llevado a que el abandono de pozos petroleros sea hoy un área de desarrollo tan importante?",
+   "english": false,
+   "citation": "Villalba Villamizar, 2026"
+  },
+  "80bb772b07c829ea": {
+   "question": "In the darker zones of the packstone, what are the relative proportions of fossils, lime mud matrix, and sparry cement?",
+   "english": true,
+   "citation": "Etayo-Serna et al., 2019"
+  },
+  "0d3f5bf9eb70b5f2": {
+   "question": "¿Cómo se puede calcular la saturación de agua de una formación cuando no hay registros de porosidad que permitan conocer el factor de formación?",
+   "english": false,
+   "citation": "Sarmiento Isaza, 2021"
+  },
+  "0ccd844961131b4f": {
+   "question": "¿Qué tipos de terminaciones de estratos (onlaps y truncaciones erosionales) se identificaron en la cuenca del Valle Medio del Magdalena como posibles trampas estratigráficas, y contra qué superficie se dieron?",
+   "english": false,
+   "citation": "Mantilla Cañas & Rico Cárdenas, 2022"
+  },
+  "1f735d1263b43b7f": {
+   "question": "What does the ratio of Rxo to Rt indicate about a formation, and why is it important for determining water saturation?",
+   "english": true,
+   "citation": "Sarmiento Isaza, 2021"
+  },
+  "445e15aa2f381667": {
+   "question": "¿Qué opciones ofrece el módulo Compute de Power Log para realizar cálculos con las curvas cargadas, y qué tipo de parámetros petrofísicos o de profundidad se pueden obtener con él?",
+   "english": false,
+   "citation": "Ballesteros Prada, 2010"
+  },
+  "485a12d51b8a8f2c": {
+   "question": "¿Qué método se propone para calcular la cantidad de hidrocarburo presente en el área de estudio, y qué tipos de datos se combinan para lograrlo?",
+   "english": false,
+   "citation": "Acevedo Pinto, 2017"
+  },
+  "973af0b9f643ce2e": {
+   "question": "What are the main types of oil well abandonment, and how do temporary and permanent abandonment differ?",
+   "english": true,
+   "citation": "Carrillo Cataño, 2021"
+  },
+  "b4ce9b5d3f8ec524": {
+   "question": "¿Qué factores han frenado el crecimiento de la producción petrolera de Colombia desde 2014, y qué se necesitaría para volver a impulsarla?",
+   "english": false,
+   "citation": "Gomez Pacheco, 2017"
+  },
+  "0ae7a24097132fd2": {
+   "question": "¿Qué procedimientos se recomiendan para colocar tapones de cemento y lodo al abandonar un pozo, y en qué casos se deben aplicar según el decreto colombiano vigente y las propuestas del autor?",
+   "english": false,
+   "citation": "Carrillo Cataño, 2021"
+  },
+  "a915ee1a952c5ca9": {
+   "question": "What depositional environment has been proposed for the Mugrosa Formation, and what evidence points to a possible marine influence within it?",
+   "english": true,
+   "citation": "Prada Gómez & Salcedo Rodríguez, 2018"
+  },
+  "3edf9a284385f874": {
+   "question": "¿Qué rango de reflectancia de vitrinita (Ro) muestra la Formación La Luna y qué implica para su generación de hidrocarburos?",
+   "english": false,
+   "citation": "Guerrero et al., 2020"
+  },
+  "db9e21e4197cf507": {
+   "question": "¿Qué tipos de facies son las más adecuadas para modelar la Formación Mugrosa en las unidades B1, B2, C2 y C3, y por qué las arenas de relleno de canal son preferidas frente a otras litologías?",
+   "english": false,
+   "citation": "Herrera Otero, 2016"
+  },
+  "c39bf0ff2d2182b3": {
+   "question": "What approach did the researchers use to combine the seismic line reinterpretation with the regional cross-section, and how were the salinity values from wells and shallow aquifers displayed on it?",
+   "english": true,
+   "citation": "Sarmiento Isaza, 2021"
+  },
+  "d66171a2adb76e9a": {
+   "question": "¿Cuál es la principal desventaja del método del dump bailer para colocar cemento en un pozo y por qué lo hace poco eficiente cuando hay que abandonar varias zonas?",
+   "english": false,
+   "citation": "Carrillo Cataño, 2021"
+  },
+  "804381b383ddcfb1": {
+   "question": "¿Con qué criterio se decide la concentración de la solución de NaCl que se preparará en el laboratorio?",
+   "english": false,
+   "citation": "Cárdenas Ospina & Ramírez Trujillo, 2015"
+  }
+ }
+}
