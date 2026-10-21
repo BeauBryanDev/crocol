@@ -31,6 +31,31 @@ class EntityMention(BaseModel):
                   "basin", "unknown"]
 
 
+WellStatus = Literal["PRODUCTOR", "SIN ESTADO", "TAPONADO Y ABANDONADO",
+                     "INYECTOR", "SECO", "SUSPENDIDO", "ABANDONADO"]
+
+
+class WellQuery(BaseModel):
+    """Every field is required: optional fields make Anthropic's grammar
+    too complex (400 after ~40 s, live 2026-10-20)."""
+    op: Literal["count", "group_by", "list", "top_depth", "near_fault",
+                "distance"]
+    municipality: str | None
+    field: str | None
+    department: str | None
+    operator: str | None
+    statuses: list[WellStatus]
+    trajectory: Literal["VERTICAL", "DIRECCIONAL", "HORIZONTAL", "TIPO J",
+                        "TIPO S"] | None
+    purpose: Literal["INYECTOR", "ESTRATIGRAFICO", "PRODUCTOR",
+                     "CAPTADOR DE AGUA"] | None
+    group_by: Literal["field", "municipality", "operator", "field_operator",
+                      "status", "trajectory", "purpose"] | None
+    n: int | None
+    max_fault_km: float | None
+    wells: list[str]
+
+
 class Analysis(BaseModel):
     language: Literal["es", "en"]
     mode: Literal["quick", "research"]
@@ -42,6 +67,7 @@ class Analysis(BaseModel):
     bm25_query: str | None = None
     places: list[PlaceMention] = []
     entities: list[EntityMention] = []
+    well_query: WellQuery | None = None
     follows_up: bool = False
     standalone_question: str | None = None
     prior_coverage: str = ""

@@ -16,6 +16,7 @@ from crocol.application.agent.nodes.grade import grade
 from crocol.application.agent.nodes.rerank import rerank_chunks
 from crocol.application.agent.nodes.retrieve import (
     retrieve_production,
+    retrieve_spatial,
     search_variant,
 )
 from crocol.application.agent.routing import calls_left
@@ -88,10 +89,11 @@ async def graph_lists(sub: dict, deps: AgentDeps) -> list[list[Chunk]]:
     if deps.graph is None or not mentions:
         return []
     try:
-        found = await graph_search(deps.graph, mentions, sub["corpus_scope"])
+        found = await graph_search(deps.graph,
+                                   mentions, sub["corpus_scope"])
     except Exception:
         return []
-    return [lst for lst in (list(found.facts), list(found.chunks)) if lst]
+    return [lst for lst in ( list(found.facts), list(found.chunks) ) if lst]
 
 
 async def bounded_grade(local: AgentState, deps: AgentDeps) -> dict:
@@ -122,7 +124,11 @@ async def investigate(sub: dict, deps: AgentDeps) -> tuple[dict, dict]:
     }
     found = await search_variant(local, deps, sub["question"])
     lists = [found, *await graph_lists(sub, deps)]
-    candidates = fuse_chunks(lists, RERANK_CANDIDATES, CANDIDATE_PER_DOC_CAP)
+    
+    candidates = fuse_chunks(lists,
+                             RERANK_CANDIDATES, 
+                             CANDIDATE_PER_DOC_CAP)
+    
     local["chunks"], reranked = await rerank_chunks(sub["question"],
                                                     candidates, deps)
     graded = await bounded_grade(local, deps)
@@ -154,11 +160,13 @@ def sub_index(result: dict) -> int:
 
 
 def merged_evidence(results: list[dict],
-                    first: list[Chunk] | None = None) -> list[Chunk]:
+                    first: list[Chunk] | None = None
+                    ) -> list[Chunk]:
     """Tool passages first, then each sub-question's graded evidence."""
     seen: set[str] = set()
     per_doc: dict[str, int] = {}
     merged: list[Chunk] = []
+    
     for chunk in first or []:
         seen.add(chunk.chunk_id)
         merged.append(replace(chunk, label=f"C{len(merged) + 1}"))
@@ -169,31 +177,46 @@ def merged_evidence(results: list[dict],
                 continue
             if per_doc.get(chunk.doc_id, 0) >= PER_DOC_CAP:
                 continue
+            
             seen.add(chunk.chunk_id)
+            
             per_doc[chunk.doc_id] = per_doc.get(chunk.doc_id, 0) + 1
             merged.append(replace(chunk, label=f"C{len(merged) + 1}"))
+            
             if len(merged) == RESEARCH_MAX_CHUNKS:
                 return merged
 
     return merged
 
 
-async def production_evidence(state: AgentState,
-                              deps: AgentDeps) -> tuple[list[Chunk], dict]:
-    """ANH production series for a research question; no model call."""
-    update, _ = await retrieve_production(state, deps)
-    channel = update["channels"]["production"]
-    if channel["status"] != "ok":
-        return [], update
+def channel_chunks(update: dict, name: str) -> list[Chunk]:
 
-    return list(channel["lists"][0]), update
+    channel = update["channels"][name]
+    if channel["status"] != "ok":
+        return []
+
+    return list(channel["lists"][0])
+
+
+async def tool_evidence(state: AgentState,
+                        deps: AgentDeps) -> tuple[list[Chunk], 
+                                                  list[Chunk],
+                                                  dict]:
+    """ANH database and production passages; no model call."""
+    produced, located = await asyncio.gather(
+        retrieve_production(state, deps), retrieve_spatial(state, deps))
+    channels = {**produced[0]["channels"], **located[0]["channels"]}
+
+    return (channel_chunks(produced[0], "production"),
+            channel_chunks(located[0], "spatial"),
+            {**produced[0], **located[0], "channels": channels})
 
 
 async def merge(state: AgentState, deps: AgentDeps) -> tuple[dict, dict]:
 
     results = state.get("sub_results") or []
-    produced, tool_update = await production_evidence(state, deps)
-    evidence = merged_evidence(results, produced)
+    produced, located, tool_update = await tool_evidence(state, deps)
+    evidence = merged_evidence(results, [*produced, *located])
     gaps = sum(1 for r in results if not r["sufficient"])
     # One uncovered sub-question is a gap the writer mentions, not a
     # partial answer; most of them uncovered is.
@@ -219,5 +242,6 @@ async def merge(state: AgentState, deps: AgentDeps) -> tuple[dict, dict]:
         "documents": len({c.doc_id for c in evidence}),
         "partial_evidence": update["partial_evidence"],
         "production_passages": len(produced),
+        "spatial_passages": len(located),
     }
     return update, summary

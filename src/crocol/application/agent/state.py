@@ -53,6 +53,7 @@ class AgentState(TypedDict, total=False):
     query_variants: list[str]
     bm25_query: str | None
     places: list[dict]
+    well_query: dict[str, Any] | None
     production: list[dict]
     entities: list[dict]
     channels: Annotated[dict[str, ChannelResult], merge_channels]
@@ -118,6 +119,7 @@ def initial_state(question: str,
         "query_variants": [question],
         "bm25_query": None,
         "places": [],
+        "well_query": None,
         "production": [],
         "entities": [],
         "channels": {},
