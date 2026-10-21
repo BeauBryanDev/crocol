@@ -36,7 +36,8 @@ REQUIRED_KEYS = [
     "POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB", "PG_DSN", "ANTHROPIC_API_KEY",
     "OPENAI_API_KEY",
 ]
-OPTIONAL_KEYS = ["GOOGLE_API_KEY", "POSTGRES_PORT"]
+OPTIONAL_KEYS = ["GOOGLE_API_KEY", "POSTGRES_PORT", "CROCO_MEMORY_KEY"]
+MEMORY_KEY_MIN_BYTES = 32
 OPENAI_EMBEDDING_MODEL = "text-embedding-3-large"
 DEFAULT_PG_PORT = 5445
 CHROMA_HOSTS = {"api.trychroma.com"}
@@ -128,6 +129,9 @@ def check_formats(env, report):
                  "prefix sk-ant-", "unexpected prefix")
     report.check((env.get("OPENAI_API_KEY") or "").startswith("sk-"), "OPENAI_API_KEY",
                  "prefix sk-", "unexpected prefix")
+    report.check(len((env.get("CROCO_MEMORY_KEY") or "").encode()) >= MEMORY_KEY_MIN_BYTES,
+                 "CROCO_MEMORY_KEY", f">= {MEMORY_KEY_MIN_BYTES} bytes",
+                 "missing or too short: follow-up memory is off")
 
 
 def http_get_json(url, headers):

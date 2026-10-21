@@ -26,6 +26,33 @@ RESTART IDENTITY CASCADE
 """
 TRUNCATE_FAULTS = "TRUNCATE core.faults, raw.faults"
 TRUNCATE_FOOTPRINT = "TRUNCATE core.vmm_footprint"
+TRUNCATE_METRICS = "TRUNCATE core.well_metrics"
+
+# Z is measured depth in feet; outside this range it is unreliable (owner).
+DEPTH_RELIABLE_FT = (100, 25000)
+FT_TO_M = 0.3048
+
+INSERT_METRICS = """
+INSERT INTO core.well_metrics (
+    well_id, depth_ft, depth_m, depth_reliable, nearest_fault_id,
+    nearest_fault_name, nearest_fault_type, nearest_fault_km)
+SELECT w.well_id,
+       w.z_value_raw,
+       round((w.z_value_raw * %(ft_to_m)s)::numeric, 1),
+       w.z_value_raw BETWEEN %(min_ft)s AND %(max_ft)s,
+       nf.fault_id,
+       nf.name,
+       nf.fault_type,
+       round((nf.meters / 1000)::numeric, 2)
+FROM core.wells w
+LEFT JOIN LATERAL (
+    SELECT f.fault_id, f.name, f.fault_type,
+           ST_Distance(f.geom_ctm12, w.geom_ctm12) AS meters
+    FROM core.faults f
+    ORDER BY f.geom_ctm12 <-> w.geom_ctm12
+    LIMIT 1
+) nf ON true
+"""
 
 ORGANIZATION_NAMES = """
 SELECT n, count(*) FROM (

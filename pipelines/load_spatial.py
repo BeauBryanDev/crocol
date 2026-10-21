@@ -31,12 +31,15 @@ from spatial_sources import (
     stream_2d,
 )
 from spatial_sql import (
+    DEPTH_RELIABLE_FT,
     DISPLAY_TOLERANCE_DEG,
     FOOTPRINT_KM,
     FOOTPRINT_SIMPLIFY_M,
+    FT_TO_M,
     INSERT_3D,
     INSERT_FIELDS,
     INSERT_LINES,
+    INSERT_METRICS,
     INSERT_MUNICIPALITY,
     INSERT_MUNICIPALITY_ALIAS,
     INSERT_ORGANIZATION,
@@ -47,13 +50,14 @@ from spatial_sql import (
     TRUNCATE_FACTS,
     TRUNCATE_FAULTS,
     TRUNCATE_FOOTPRINT,
+    TRUNCATE_METRICS,
 )
 
 DESCRIPTION = (
     "Load the VMM spatial core (wells, 2D and 3D seismic, faults, lookups) "
     "into PostGIS. Only VMM features are stored. "
     "Usage: magdalena/bin/python pipelines/load_spatial.py "
-    "[--step raw|facts|faults|footprint|all] [--sample N] [--dry-run]"
+    "[--step raw|facts|faults|metrics|footprint|all] [--sample N] [--dry-run]"
 )
 REVIEW = ROOT / "docs" / "municipalities_review.csv"
 
@@ -160,6 +164,16 @@ def load_footprint(conn: psycopg.Connection) -> dict:
     return {}
 
 
+def load_metrics(conn: psycopg.Connection) -> dict:
+    """Per-well depth (both units, reliability) and nearest fault."""
+    low, high = DEPTH_RELIABLE_FT
+    with conn.transaction():
+        conn.execute(TRUNCATE_METRICS)
+        conn.execute(INSERT_METRICS, {"ft_to_m": FT_TO_M, "min_ft": low,
+                                      "max_ft": high})
+    return {}
+
+
 def read_sources(step: str) -> dict[str, list[Feature]]:
 
     sources: dict[str, list[Feature]] = {}
@@ -185,6 +199,8 @@ def run_step(conn: psycopg.Connection, args: argparse.Namespace,
         return sample_faults(conn, sources["faults"], args.sample)
     if args.step in ("faults", "all"):
         notes.update(load_faults(conn, sources["faults"]))
+    if args.step in ("facts", "faults", "metrics", "all"):
+        notes.update(load_metrics(conn))
     if args.step == "footprint" and args.sample:
         return count_footprint_cells(conn)
     if args.step in ("footprint", "all"):
@@ -228,7 +244,8 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true",
                         help="read and filter the files, no database writes")
     parser.add_argument("--step", default="all",
-                        choices=["raw", "facts", "faults", "footprint", "all"])
+                        choices=["raw", "facts", "faults", "metrics",
+                                 "footprint", "all"])
     parser.add_argument("--sample", type=int, default=0,
                         help="faults or footprint: measure only, save nothing")
     run(parser.parse_args())

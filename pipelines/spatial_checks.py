@@ -97,6 +97,11 @@ CHECKS = {
         "WHERE NOT ST_IsValid(geom)) + (SELECT count(*) FROM core.seismic_3d "
         "WHERE NOT ST_IsValid(geom)) + (SELECT count(*) FROM core.faults "
         "WHERE NOT ST_IsValid(geom))",
+    "well_metrics": "SELECT count(*) FROM core.well_metrics",
+    "wells_with_depth":
+        "SELECT count(*) FROM core.well_metrics WHERE depth_ft IS NOT NULL",
+    "wells_unreliable_depth":
+        "SELECT count(*) FROM core.well_metrics WHERE NOT depth_reliable",
     "footprint_km2":
         "SELECT (SELECT round((ST_Area(geom::geography) / 1e6)::numeric) "
         "FROM core.vmm_footprint)",
