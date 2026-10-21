@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import time
 from collections.abc import Awaitable, Callable
 
@@ -31,6 +32,7 @@ from crocol.domains.models.traces import TraceEvent
 # State, Deps -> Update, Summary
 NodeFn = Callable[[AgentState, AgentDeps], Awaitable[tuple[dict, dict]]]
 Runner = Callable[[AgentState], Awaitable[dict]]
+LOGGER = logging.getLogger("crocol.agent")
 
 NODES: dict[str, NodeFn] = {
     "analyze": analyze,
@@ -63,6 +65,7 @@ def elapsed_ms(started: float) -> int:
 
 def failed(name: str, reason: str) -> tuple[dict, dict, str]:
     """A crashed or timed-out node; optional ones never make it partial."""
+    LOGGER.warning("node %s failed: %s", name, reason)
     update: dict = {"errors": [f"{name}: {reason}"]}
     if name not in OPTIONAL_NODES:
         update["partial"] = True
