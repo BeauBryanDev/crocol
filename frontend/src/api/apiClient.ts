@@ -6,11 +6,16 @@ export const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '')
 const JSON_TIMEOUT_MS = 30_000;
 
 export class ApiError extends Error {
+
   readonly status: number;
   readonly requestId: string | null;
   readonly retryAfterS: number | null;
 
-  constructor(message: string, status: number, requestId: string | null = null, retryAfterS: number | null = null) {
+  constructor(message: string,
+    status: number, 
+    requestId: string | null = null,
+    retryAfterS: number | null = null) {
+
     super(message);
     this.name = 'ApiError';
     this.status = status;
@@ -34,12 +39,21 @@ const header = (res: AxiosResponse, name: string): string | null => {
 };
 
 export const errorFromResponse = (res: AxiosResponse, body: unknown): ApiError => {
+
   const retry = Number(header(res, 'retry-after'));
   const retryAfterS = Number.isFinite(retry) && retry > 0 ? retry : null;
+
   if (isErrorBody(body)) {
-    return new ApiError(body.error, res.status, body.request_id, retryAfterS);
+
+    return new ApiError(body.error,
+       res.status, 
+       body.request_id, 
+       retryAfterS);
   }
-  return new ApiError(res.statusText || 'request failed', res.status, header(res, 'x-request-id'), retryAfterS);
+  return new ApiError(res.statusText || 'request failed',
+     res.status, 
+     header(res, 'x-request-id'), 
+     retryAfterS);
 };
 
 // Axios errors become ApiError; a cancelled request stays an AbortError, as callers expect.
@@ -73,4 +87,5 @@ export const getMeta = (signal?: AbortSignal) => request<MetaResponse>('/meta', 
 export const getReady = (signal?: AbortSignal) => request<ReadyResponse>('/ready', { signal });
 
 export const getTrace = (traceId: string, signal?: AbortSignal) =>
+  
   request<TraceResponse>(`/traces/${encodeURIComponent(traceId)}`, { signal });

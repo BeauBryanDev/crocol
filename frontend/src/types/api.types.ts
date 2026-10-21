@@ -1,4 +1,3 @@
-// Mirrors src/crocol/app/schemas.py and docs/design/stage5_api.md §11.
 // The FastAPI backend is the source of truth for every shape here.
 
 export type AnswerStatus = 'answered' | 'partial' | 'abstained' | 'error';
@@ -194,8 +193,16 @@ export interface EntityDocument {
 }
 
 export interface EntityResponse {
-  entity: { kind: string; name: string; score: number; mentions: number; props: Record<string, unknown> };
-  candidates: { kind: string; name: string; score: number }[];
+  entity: { 
+    kind: string; 
+    name: string; 
+    score: number;
+    mentions: number;
+    props: Record<string, unknown>
+     };
+  candidates: { kind: string;
+     name: string; 
+     score: number }[];
   relations: EntityRelation[];
   documents: EntityDocument[];
   source: string;

@@ -4,7 +4,9 @@ import { EntityKind, EntityResponse } from '../types/api.types';
 const UNIT_KINDS: EntityKind[] = ['formation', 'group', 'member'];
 
 const fetchCard = async (name: string, kind: EntityKind | undefined, signal?: AbortSignal) => {
+
   const params = new URLSearchParams({ name });
+
   if (kind) params.set('kind', kind);
   try {
     return await request<EntityResponse>(`/graph/entity?${params.toString()}`, { signal });
@@ -31,10 +33,12 @@ export const getEntity = async (
 
 // "Mesa Formation" -> Mesa; "Noreán / Girón formations" -> Girón.
 export const unitQuery = (englishName: string): { name: string; kinds: EntityKind[]; anyKind: boolean } => {
+
   const found = /^(.*?)\s+(formations?|groups?|members?)$/i.exec(englishName.trim());
   const base = (found ? found[1] : englishName).split('/').pop()!.trim();
   const word = found?.[2].toLowerCase() ?? '';
   const hinted: EntityKind = word.startsWith('group') ? 'group' : word.startsWith('member') ? 'member' : 'formation';
   const kinds = [hinted, ...UNIT_KINDS.filter((kind) => kind !== hinted)];
+  
   return { name: base, kinds, anyKind: false };
 };
