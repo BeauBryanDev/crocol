@@ -15,6 +15,7 @@ from crocol.domains.services.citations import (
 )
 from crocol.domains.services.paragraph_citations import cap_citations
 
+WELL_DEPTH_PASSAGES = ("geo.well_stats", "geo.well_list", "geo.well_distance")
 MESSAGES = { # dictionary od default message to help agent as error answers EN,SP.
 
     "es": {
@@ -42,6 +43,10 @@ MESSAGES = { # dictionary od default message to help agent as error answers EN,S
                    "municipio y campo según los atributos de los pozos (sin "
                    "polígonos); la sísmica es geometría de adquisición, no "
                    "interpretación del subsuelo.",
+        "well_depth": "Profundidad de pozo = profundidad medida (atributo "
+                      "Z de ANH, calidad del levantamiento no confirmada), "
+                      "no profundidad vertical verdadera; no confiable "
+                      "fuera de 100–25.000 ft y ausente en 1.714 pozos.",
         "unverified": "Cifras sin respaldo en la evidencia:",
         "vision_model": "Mediciones del modelo MobileNetV2-UNet en píxeles "
                         "y ángulos en el marco de la imagen; la severidad "
@@ -88,6 +93,10 @@ MESSAGES = { # dictionary od default message to help agent as error answers EN,S
                    "municipality and field membership come from well "
                    "attributes (no polygons); seismic is acquisition "
                    "geometry, not subsurface interpretation.",
+        "well_depth": "Well depth = measured depth (ANH Z attribute, survey "
+                      "quality unconfirmed), not true vertical depth; "
+                      "unreliable outside 100–25,000 ft and missing for "
+                      "1,714 wells.",
         "unverified": "Figures not supported by the evidence:",
         "vision_model": "MobileNetV2-UNet measurements are in pixels and "
                         "angles are in the image frame; severity is a "
@@ -240,6 +249,8 @@ def caveats_for(state: AgentState,
         caveats.append(text["unverified_answer"])
     if any(c.doc_type == "spatial_query" for c in cited):
         caveats.append(text["spatial"])
+    if any(c.heading_path in WELL_DEPTH_PASSAGES for c in cited):
+        caveats.append(text["well_depth"])
     if state.get("partial"):
         caveats.append(text["partial"])
     if state.get("partial_evidence"):

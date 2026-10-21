@@ -106,6 +106,8 @@ async def analyze(state: AgentState,
         "query_variants": variants,
         "bm25_query": analysis.bm25_query,
         "places": [place.model_dump() for place in analysis.places[:3]],
+        "well_query": (analysis.well_query.model_dump()
+                       if analysis.well_query else None),
         "entities": [e.model_dump()
                      for e in analysis.entities[:KG_MAX_ENTITIES]],
         "strategies": [strategy],
@@ -121,6 +123,8 @@ async def analyze(state: AgentState,
         "query_type": analysis.query_type,
         "variants": len(variants),
         "places": len(analysis.places),
+        "well_query": (analysis.well_query.op
+                       if analysis.well_query else None),
         "entities": len(analysis.entities),
         "fallback": fallback,
         "history": len(state.get("history") or []),

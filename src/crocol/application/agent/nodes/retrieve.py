@@ -104,16 +104,17 @@ async def retrieve_spatial(
     state: AgentState,
     deps: AgentDeps,
 ) -> tuple[dict, dict]:
-    """ANH database lookups for the places the question names."""
+    """ANH database lookups: the well query and the places named."""
     places = state.get("places") or []
+    well_query = state.get("well_query")
     if deps.spatial is None:
         return skipped(state, "spatial", "no spatial store configured")
-    if not places:
-        return skipped(state, "spatial", "the question names no place")
+    if not places and not well_query:
+        return skipped(state, "spatial", "no place and no well query")
 
     try:
         chunks, calls = await spatial_search(
-            deps.spatial, state.get("intents") or [], places)
+            deps.spatial, state.get("intents") or [], places, well_query)
     except Exception as exc:
         failed = ChannelResult(attempt=state.get("attempts", 0),
                                status="error", lists=[],
