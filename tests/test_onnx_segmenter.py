@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from config.settings import VISION_MAX_SIDE, VISION_MODEL
+from config.settings import VISION_MAX_SIDE, VISION_MODEL, VISION_THRESHOLD
 from crocol.infrastructure.vision.onnx_segmenter import (
     OnnxCrackAnalyzer,
     clear_border,
@@ -70,7 +70,7 @@ def test_real_photo_end_to_end() -> None:
     analysis = OnnxCrackAnalyzer().analyze(photos[0].read_bytes())
     report = analysis.report
     assert report.model == "MobileNetV2-UNet v2.0.0"
-    assert report.threshold == 0.5
+    assert report.threshold == VISION_THRESHOLD
     assert report.crack_count >= 1
     assert 1.0 <= report.fractal_dimension <= 2.0
     assert report.severity in {"low", "moderate", "high", "critical"}

@@ -24,6 +24,7 @@ class FakeAsk:
 
         self.calls: list[tuple[str, bytes | None]] = []
         self.wells: list[dict | None] = []
+        self.histories: list[tuple] = []
 
     def final(self) -> dict:
 
@@ -34,17 +35,21 @@ class FakeAsk:
                 "caveats": [], "conflicts": [], "overlay_webp_b64": None}
 
     async def ask(self, question: str, image: bytes | None,
-                  well: dict | None = None) -> dict:
+                  well: dict | None = None, history: list | None = None,
+                  ui_context: dict | None = None) -> dict:
 
         self.calls.append((question, image))
         self.wells.append(well)
+        self.histories.append((history, ui_context))
         return self.final()
 
     async def stream(self, question: str, image: bytes | None,
-                     well: dict | None = None):
+                     well: dict | None = None, history: list | None = None,
+                     ui_context: dict | None = None):
 
         self.calls.append((question, image))
         self.wells.append(well)
+        self.histories.append((history, ui_context))
         yield {"event": "node", "node": "analyze", "ms": 5}
         yield self.final()
 

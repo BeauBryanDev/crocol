@@ -7,6 +7,7 @@ from fakes import FakeLLM, FakeStore
 from config.settings import get_settings
 from crocol.application.agent.graph import build_graph
 from crocol.application.agent.nodes.retrieve import retrieve_production
+from crocol.application.agent.research import merge
 from crocol.application.agent.schemas import (
     Analysis,
     DraftAnswer,
@@ -19,6 +20,7 @@ from crocol.application.tools.production_search import (
     field_mentions,
     search_production_by_field,
 )
+from crocol.domains.models.chunks import Chunk
 from crocol.domains.models.productions import ProductionResult
 from crocol.domains.services.production_trend import classify
 from crocol.infrastructure.repository.productions import checked
@@ -195,3 +197,21 @@ def test_final_event_carries_the_chart_series() -> None:
     record = {"llm_calls": 4, "tokens_in": 10, "tokens_out": 5}
     event = final_event("trace-1", answer, record)
     assert event["production"] == [series]
+
+
+@pytest.mark.anyio
+async def test_research_merge_puts_production_first() -> None:
+    store = FakeProduction([CIRA], DECLINING_OIL, STABLE_GAS)
+    deps = AgentDeps(llm=FakeLLM({}), store=FakeStore([]), production=store)
+    paper = Chunk("p1", "doc-1", "La Cira produce de Mugrosa.", "Autor, 2010")
+    state = state_with(mode="research", intents=["production", "history"],
+                       places=[{"name": "La Cira-Infantas", "kind": "field"}],
+                       sub_results=[{"index": 0, "evidence": [paper],
+                                     "sufficient": True, "missing": ""}])
+    update, summary = await merge(state, deps)
+
+    labels = [(c.label, c.citation) for c in update["evidence"]]
+    assert labels[0] == ("C1", "ANH-Produccion-Fiscalizada-2026")
+    assert labels[-1] == (f"C{len(labels)}", "Autor, 2010")
+    assert update["production"][0]["name"] == "LA CIRA INFANTAS"
+    assert summary["production_passages"] == len(labels) - 1
