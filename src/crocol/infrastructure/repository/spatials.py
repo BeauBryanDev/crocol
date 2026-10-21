@@ -33,9 +33,75 @@ FUNCTIONS = {
         "SELECT survey, line_name, acq_year, distance_km, well_name "
         "FROM geo.nearest_lines(%s::text, %s::integer)",
         ("name", "n")),
+    "well_stats": (
+        "SELECT grp, wells, producing, with_depth, without_depth, "
+        "unreliable_depth, "
+        "mean_depth_ft, mean_depth_m, max_depth_ft, max_depth_m, "
+        "mean_fault_km, min_fault_km, matched "
+        "FROM geo.well_stats(%s::text, %s::text, %s::text, %s::text, "
+        "%s::text[], %s::text, %s::text, %s::text)",
+        ("municipality", "field", "department", "operator", "statuses",
+         "trajectory", "purpose", "group_by")),
+    "well_list": (
+        "SELECT well_name, field_name, municipality_name, well_status, "
+        "well_trajectory, operator_name, depth_ft, depth_m, depth_reliable, "
+        "nearest_fault, fault_km, matched "
+        "FROM geo.well_list(%s::text, %s::text, %s::text, %s::text, "
+        "%s::text[], %s::text, %s::text, %s::text, %s::real, %s::integer)",
+        ("municipality", "field", "department", "operator", "statuses",
+         "trajectory", "purpose", "order_by", "max_fault_km", "n")),
+    "well_distance": (
+        "SELECT well_a_name, field_a, well_b_name, field_b, surface_km, "
+        "depth_a_ft, depth_a_m, depth_b_ft, depth_b_m, pay_a_ft, pay_b_ft, "
+        "distance_3d_m, distance_3d_ft, note "
+        "FROM geo.well_distance(%s::text, %s::text)",
+        ("well_a", "well_b")),
 }
 KINDS = ("well", "field", "municipality")
 MAX_NAME = 120
+NAMES = ("name", "municipality", "field", "department", "operator",
+         "well_a", "well_b")
+STATUSES = ("PRODUCTOR", "SIN ESTADO", "TAPONADO Y ABANDONADO", "INYECTOR",
+            "SECO", "SUSPENDIDO", "ABANDONADO")
+TRAJECTORIES = ("VERTICAL", "DIRECCIONAL", "HORIZONTAL", "TIPO J", "TIPO S")
+PURPOSES = ("INYECTOR", "ESTRATIGRAFICO", "PRODUCTOR", "CAPTADOR DE AGUA")
+GROUPS = ("field", "municipality", "operator", "field_operator", "status",
+          "trajectory", "purpose")
+ORDERS = ("name", "depth", "fault")
+CHOICES = {
+    "trajectory": TRAJECTORIES,
+    "purpose": PURPOSES,
+    "group_by": GROUPS,
+    "order_by": ORDERS,
+}
+OPTIONAL = ("municipality", "field", "department", "operator", "statuses",
+            "trajectory", "purpose", "group_by", "max_fault_km")
+
+
+def checked_value(name: str, value: object) -> object:
+
+    if value is None and name in OPTIONAL:
+        return None
+    if name in NAMES:
+        return str(value).strip()[:MAX_NAME] or None
+    if name == "kind" and value not in KINDS:
+        raise ValueError(f"invalid kind: {value}")
+    if name in CHOICES:
+        if value not in CHOICES[name]:
+            raise ValueError(f"invalid {name}: {value}")
+        return value
+    if name == "statuses":
+        statuses = [s for s in value if s in STATUSES]
+        if len(statuses) != len(value):
+            raise ValueError("invalid status")
+        return statuses or None
+    if name in ("buffer_km", "km"):
+        return float(value)
+    if name == "max_fault_km":
+        return min(max(float(value), 0.0), 20.0)
+    if name == "n":
+        return min(max(int(value), 1), 50)
+    return value
 
 
 def checked(function: str, arguments: dict) -> tuple[str, tuple]:
@@ -46,16 +112,8 @@ def checked(function: str, arguments: dict) -> tuple[str, tuple]:
     sql, names = FUNCTIONS[function]
     params = []
     for name in names:
-        value = arguments[name]
-        if name == "name":
-            value = str(value).strip()[:MAX_NAME]
-        elif name == "kind" and value not in KINDS:
-            raise ValueError(f"invalid kind: {value}")
-        elif name in ("buffer_km", "km"):
-            value = float(value)
-        elif name == "n":
-            value = int(value)
-        params.append(value)
+        value = arguments.get(name) if name in OPTIONAL else arguments[name]
+        params.append(checked_value(name, value))
 
     return sql, tuple(params)
 
