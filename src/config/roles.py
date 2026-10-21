@@ -57,6 +57,7 @@ NODE_TIMEOUT_S = 30.0
 WRITER_TIMEOUT_S = 90.0
 CHECKER_TIMEOUT_S = 60.0
 NODE_TIMEOUTS = {
+    "analyze": 45.0,
     "synthesize": WRITER_TIMEOUT_S,
     "revise": WRITER_TIMEOUT_S,
     "verify": CHECKER_TIMEOUT_S,
