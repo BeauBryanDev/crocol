@@ -61,6 +61,26 @@ export interface ProductionSeries {
   source: string;
 }
 
+// One remembered turn, signed by the server; sent back unchanged (max 3).
+export interface MemoryRecord {
+  v: number;
+  ts: number;
+  kind: 'text' | 'image' | 'wellsim';
+  language: 'es' | 'en';
+  question: string;
+  standalone: string;
+  summary: string;
+  entities: string[];
+  facts: Record<string, string>;
+  sig: string;
+}
+
+// What the user has open on screen; context for the agent, never evidence.
+export interface UiContext {
+  formation?: string;
+  place?: string;
+}
+
 export interface ChatResponse {
   trace_id: string;
   status: AnswerStatus;
@@ -74,6 +94,7 @@ export interface ChatResponse {
   production: ProductionSeries[];
   simulation: WellSweepResponse | null;
   vision: VisionResult | null;
+  memory: MemoryRecord | null;
 }
 
 export interface NodeEvent {

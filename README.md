@@ -15,10 +15,18 @@ It is a single-page app (React + FastAPI) built on a **LangGraph multi-node agen
 - claim verification by a model from a different family;
 - citations rendered from metadata, never from model text.
 
-![Crocol frontend](Crocol_Frontend.png)
+![Crocol frontend](./frontend/src/assets/Crocol_Avatar.png)
 
 ---
 
+Crocol is a multi-agent, Advanced RAG system built to answer technical questions about the petroleum geology of Colombia’s Middle Magdalena Valley (VMM) basin. The real engineering problem it solves is not geology itself: it is reliable retrieval and reasoning over a large, heterogeneous, unstructured corpus — 86+ sources spanning geological theses, government technical reports, exploration contracts, and regulatory text — where the answer to a single question often requires combining a narrative passage, a data table, a SQL aggregation over well records, and a spatial relationship between a field and a municipality. A junior geologist, analyst, or researcher working with the VMM basin today has no single tool that lets them ask a natural-language question and get a verified, cited answer instead of manually searching dozens of PDFs.
+
+Crocol’s scope is deliberately narrow: one basin, three core tools, and a tiered corpus (core basin literature, peripheral regulatory and contract documents, excluded duplicates and unverified AI-generated reports). This is a design choice, not a limitation — a bounded domain allows for a real evaluation suite (gold questions, citation checks, hallucination traps) instead of shallow coverage across all of Colombia’s geology or unrelated fields such as mining or biodiversity. The architecture combines hybrid dense and BM25 retrieval with server-side fusion, a knowledge graph over wells, fields, formations, and municipalities for multi-hop questions, and a parameterized PostGIS/SQL layer for tabular and spatial queries that plain document retrieval cannot answer (rankings, aggregations, “what fields lie within this municipality”).
+
+The graph and SQL nodes exist because a text-only RAG system fails predictably on this kind of corpus: it cannot rank or aggregate numeric data, it loses table structure during chunking, and it cannot connect an entity mentioned in one document (a mineral host, a case study) to a mechanism described in another. A dedicated LangGraph agent routes each question to the right retrieval strategy, verifies claims and citations against the retrieved sources before responding, and explicitly abstains rather than fabricating data when the corpus does not support an answer — behavior confirmed through manual evaluation against the indexed documents. Crocol is, above all, a demonstration of applied Advanced RAG engineering: hybrid search, graph reasoning, structured-data tools, and hallucination control, built on a real and intentionally constrained domain.
+
+I wanted to build up a research multi-agent graph that understand a domain subject like Geology of Colombia on Hydrocarbon Explroation,  apply its hybrid corpus to  provide reliable truthworth scientific answers cited papers and books passages and authors from his corpus and add value to the most important geologic basin in Colombia, I choose this domain becuase it combine  non-structured data such a  pdf papers, research theses, gouverment agencies handbooks and tech manuals with  geo-spatial data such a oil-fields and wells locations,  production history and sismic polygons, hence it  makes it real use of a modern GraphRAG architecture and three LLM  orchestration working as researches on their own tasks.
+  
 ## Contents
 
 1. [The problem Crocol solves](#the-problem-crocol-solves)

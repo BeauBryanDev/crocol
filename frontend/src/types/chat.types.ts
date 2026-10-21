@@ -1,4 +1,13 @@
-import { AnswerStatus, Conflict, NodeEvent, Usage } from './api.types';
+import {
+  AnswerStatus,
+  Conflict,
+  MemoryRecord,
+  NodeEvent,
+  ProductionSeries,
+  UiContext,
+  Usage,
+  WellParams
+} from './api.types';
 
 export type MessageSender = 'user' | 'assistant';
 
@@ -19,6 +28,11 @@ export interface ChatMessage {
   traceId?: string;
   usage?: Usage | null;
   isError?: boolean;
+  hadImage?: boolean;
+  hadOverlay?: boolean;
+  production?: ProductionSeries[];
+  hadSimulation?: boolean;
+  memory?: MemoryRecord | null;
 }
 
 export interface QuickActionItem {
@@ -26,4 +40,12 @@ export interface QuickActionItem {
   icon: string;
   title: { en: string; es: string };
   prompt: { en: string; es: string };
+}
+
+// A question queued from another panel (map, well simulator) for the chat.
+export interface PendingQuestion {
+  text: string;
+  contextLabel?: string;
+  well?: WellParams;
+  uiContext?: UiContext;
 }
