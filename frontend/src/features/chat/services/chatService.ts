@@ -1,5 +1,6 @@
-import { ApiError, apiUrl, errorFromResponse } from '../../../api/apiClient';
-import { ChatResponse, NodeEvent } from '../../../types/api.types';
+import { AxiosResponse } from 'axios';
+import { ApiError, errorFromResponse, http, toApiError } from '../../../api/apiClient';
+import { ChatResponse, MemoryRecord, NodeEvent, UiContext, WellParams } from '../../../types/api.types';
 import { Language } from '../../../i18n/translations';
 
 export const QUESTION_MIN_CHARS = 3;
@@ -25,7 +26,9 @@ export const NODE_LABELS: Record<string, Record<Language, string>> = {
   verify: { es: 'Verificando afirmaciones', en: 'Verifying claims' },
   revise: { es: 'Corrigiendo la respuesta', en: 'Revising the answer' },
   abstain: { es: 'Sin evidencia suficiente', en: 'Not enough evidence' },
-  finalize: { es: 'Preparando citas', en: 'Preparing citations' }
+  finalize: { es: 'Preparando citas', en: 'Preparing citations' },
+  simulate: { es: 'Simulando el pozo', en: 'Simulating the well' },
+  interpret: { es: 'Interpretando la simulación', en: 'Interpreting the simulation' }
 };
 
 export const nodeLabel = (node: string, lang: Language): string => NODE_LABELS[node]?.[lang] ?? node;
@@ -41,42 +44,86 @@ const parseFrame = (frame: string): { event: string; data: string } | null => {
   return data.length ? { event, data: data.join('\n') } : null;
 };
 
-const buildRequest = (question: string, image: File | null, signal: AbortSignal): [string, RequestInit] => {
-  if (image) {
-    const form = new FormData();
+const STREAM_PATH = { text: '/chat/stream', image: '/image/stream' };
+
+const readText = async (body: ReadableStream<BufferSource>): Promise<string> => {
+  const reader = body.pipeThrough(new TextDecoderStream()).getReader();
+  let text = '';
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) return text;
+    text += value;
+  }
+};
+
+const errorFromStream = async (res: AxiosResponse<ReadableStream<BufferSource>>): Promise<ApiError> => {
+  let body: unknown = null;
+  try {
+    body = JSON.parse(await readText(res.data));
+  } catch {
+    body = null;
+  }
+  return errorFromResponse(res, body);
+};
+
+export interface AskOptions {
+  well?: WellParams | null;
+  history?: MemoryRecord[];
+  uiContext?: UiContext | null;
+}
+
+const jsonBody = (question: string, options: AskOptions): Record<string, unknown> => {
+  const body: Record<string, unknown> = { question };
+  if (options.well) body.well = options.well;
+  if (options.history?.length) body.history = options.history;
+  if (options.uiContext && Object.keys(options.uiContext).length) body.ui_context = options.uiContext;
+  return body;
+};
+
+const openStream = async (
+  question: string,
+  image: File | null,
+  signal: AbortSignal,
+  options: AskOptions
+): Promise<AxiosResponse<ReadableStream<BufferSource>>> => {
+  const form = image ? new FormData() : null;
+  if (form && image) {
     form.append('question', question);
     form.append('image', image);
-    return [apiUrl('/image/stream'), { method: 'POST', body: form, signal }];
+    if (options.history?.length) form.append('history', JSON.stringify(options.history));
   }
-  return [
-    apiUrl('/chat/stream'),
-    {
-      method: 'POST',
-      body: JSON.stringify({ question }),
-      headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
-      signal
-    }
-  ];
+  try {
+    // The fetch adapter hands back the body as a stream, so SSE frames arrive
+    // live; Axios' default adapter would buffer the whole answer.
+    return await http.post<ReadableStream<BufferSource>>(
+      image ? STREAM_PATH.image : STREAM_PATH.text,
+      form ?? jsonBody(question, options),
+      {
+        adapter: 'fetch',
+        responseType: 'stream',
+        timeout: 0,
+        signal,
+        headers: { Accept: 'text/event-stream' },
+        validateStatus: () => true
+      }
+    );
+  } catch (exc) {
+    throw toApiError(exc);
+  }
 };
 
 export const streamAnswer = async (
   question: string,
   image: File | null,
   onNode: (event: NodeEvent) => void,
-  signal: AbortSignal
+  signal: AbortSignal,
+  options: AskOptions = {}
 ): Promise<ChatResponse> => {
-  const [url, init] = buildRequest(question, image, signal);
-  let res: Response;
-  try {
-    res = await fetch(url, init);
-  } catch (exc) {
-    if (exc instanceof DOMException && exc.name === 'AbortError') throw exc;
-    throw new ApiError('network error', 0);
-  }
-  if (!res.ok) throw await errorFromResponse(res);
-  if (!res.body) throw new ApiError('stream ended without an answer', 0);
+  const res = await openStream(question, image, signal, options);
+  if (res.status >= 400) throw await errorFromStream(res);
+  if (!res.data) throw new ApiError('stream ended without an answer', 0);
 
-  const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+  const reader = res.data.pipeThrough(new TextDecoderStream()).getReader();
   let buffer = '';
   for (;;) {
     const { value, done } = await reader.read();
