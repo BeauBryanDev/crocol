@@ -18,7 +18,7 @@ export const translations = {
 
     // Stratigraphic Column
     colTitle: 'Columna Estratigráfica',
-    colSubtitle: 'Cuencas de Colombia (Generalizada)',
+    colSubtitle: 'Valle Medio Del Magdalena Cuenca',
     colPeriod: 'Periodo',
     colLithology: 'Litología',
     colFacies: 'Facies',
@@ -322,7 +322,7 @@ export const translations = {
 
     // Stratigraphic Column
     colTitle: 'Stratigraphic Column',
-    colSubtitle: 'Sedimentary Basins of Colombia (Generalized)',
+    colSubtitle: 'Middle Magdalena Valley Basin',
     colPeriod: 'Period',
     colLithology: 'Lithology',
     colFacies: 'Facies',
