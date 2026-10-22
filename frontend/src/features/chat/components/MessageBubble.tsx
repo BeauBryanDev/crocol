@@ -1,12 +1,27 @@
 import React from 'react';
 import { ChatMessage } from '../../../types/chat.types';
-import { User, BookOpen, Layers, AlertTriangle, Scale, Loader2, CheckCircle2, CircleSlash, CircleAlert } from 'lucide-react';
+import { User,
+   BookOpen,
+   Layers,
+   AlertTriangle,
+    Scale,
+   Loader2,
+   CheckCircle2,
+    CircleSlash, 
+    CircleAlert, 
+    ImageOff,
+     Info, 
+    ScanSearch } from 'lucide-react';
+import { useVisionStore } from '../../vision/store/visionStore';
+import { useMapOverlayStore } from '../../map-overlay/store/mapOverlayStore';
 import { useLanguage } from '../../../i18n/useLanguage';
 import { nodeLabel } from '../services/chatService';
-import { RichText } from './RichText';
+import { MarkdownAnswer } from './MarkdownAnswer';
+import crocolAvatar from '../../../assets/Crocol_Avatar.jpg';
 
 interface MessageBubbleProps {
   message: ChatMessage;
+  onShowOnMap?: () => void;
 }
 
 const STEP_ICON: Record<string, React.ReactNode> = {
@@ -17,8 +32,10 @@ const STEP_ICON: Record<string, React.ReactNode> = {
   error: <CircleAlert className="w-3 h-3 text-[#e53935]" />
 };
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onShowOnMap }) => {
   const { language, t } = useLanguage();
+  const ownsVision = useVisionStore((state) => state.messageId === message.id);
+  const openOverlay = useMapOverlayStore((state) => state.open);
   const isAssistant = message.sender === 'assistant';
   const steps = message.steps ?? [];
 
@@ -37,7 +54,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         {isAssistant ? (
           <div className="w-9 h-9 rounded-full overflow-hidden border border-[#D9B36C] bg-[#1a110a] shadow-md flex items-center justify-center">
             <img
-              src="/assets/crocol-avatar.webp"
+              src={crocolAvatar}
               alt="Crocol"
               className="w-full h-full object-cover"
               onError={(e) => {
@@ -52,14 +69,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         )}
       </div>
 
-      <div className="flex-1 max-w-[88%] min-w-0">
+      <div className={`flex-1 min-w-0 ${isAssistant ? 'max-w-[88%]' : 'max-w-[92%]'}`}>
         <div
-          className={`p-3 rounded-lg border text-xs leading-relaxed transition-all shadow-sm ${
+          className={`rounded-lg border leading-relaxed transition-all shadow-sm ${
             message.isError
-              ? 'bg-[#2a120c] border-[#e53935]/60 text-[#F2E8D5]'
+              ? 'p-3 text-xs bg-[#2a120c] border-[#e53935]/60 text-[#F2E8D5]'
               : isAssistant
-              ? 'bg-[#1e130a] border-[#F2E8D5]/30 text-[#F2E8D5]'
-              : 'bg-[#2b1c10] border-[#D9B36C]/40 text-[#F2E8D5]'
+              ? 'p-3 text-xs bg-[#1e130a] border-[#F2E8D5]/30 text-[#F2E8D5]'
+              : 'px-4 py-3.5 text-sm bg-[#2b1c10] border-[#D9B36C]/50 text-[#F2E8D5]'
           }`}
         >
           {message.contextLabel && (
@@ -76,12 +93,19 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             </div>
           )}
 
-          {message.imageUrl && (
+          {message.imageUrl ? (
             <img
               src={message.imageUrl}
               alt=""
               className="mb-2 max-h-40 rounded-md border border-[#F2E8D5]/30 object-contain"
             />
+          ) : (
+            message.hadImage && (
+              <div className="mb-2 inline-flex items-center gap-1.5 text-[10.5px] text-[#D9B36C]/80">
+                <ImageOff className="w-3.5 h-3.5" />
+                <span>{t.imageNotSaved}</span>
+              </div>
+            )
           )}
 
           {message.pending ? (
@@ -94,11 +118,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
               </div>
             </div>
           ) : isAssistant ? (
-            <div className="font-sans text-[11.5px] leading-relaxed break-words">
-              <RichText text={message.content} />
+            <div className="font-sans text-[13px] leading-[1.65] break-words">
+              <MarkdownAnswer text={message.content} />
             </div>
           ) : (
-            <div className="whitespace-pre-wrap font-sans text-[11.5px] leading-relaxed break-words">
+            <div className="w-full min-w-0 whitespace-pre-wrap wrap-break-word font-sans text-sm leading-relaxed">
               {message.content}
             </div>
           )}
@@ -113,19 +137,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
               <figcaption className="mt-1 text-[10px] text-[#D9B36C]/80">{t.overlayTitle}</figcaption>
             </figure>
           )}
-
-          {message.caveats && message.caveats.length > 0 && (
-            <div className="mt-2.5 pt-2 border-t border-[#F2E8D5]/20 text-[10px]">
-              <div className="flex items-center gap-1 text-[#D9B36C] font-semibold mb-1">
-                <AlertTriangle className="w-3 h-3" />
-                <span>{t.caveatsTitle}</span>
-              </div>
-              <ul className="space-y-0.5 list-disc pl-4 text-[#F2E8D5]/80">
-                {message.caveats.map((caveat, i) => (
-                  <li key={i}>{caveat}</li>
-                ))}
-              </ul>
-            </div>
+          {ownsVision && (
+            <button
+              type="button"
+              onClick={() => {
+                openOverlay('vision');
+                onShowOnMap?.();
+              }}
+              className="mt-1.5 flex items-center gap-1 px-2 py-0.5 rounded-md border border-[#D9B36C]/70 text-[10.5px] font-semibold text-[#D9B36C] hover:bg-[#2F7D32] hover:text-[#F2E8D5]"
+            >
+              <ScanSearch className="w-3 h-3" />
+              {t.cvShowOnMap}
+            </button>
+          )}
+          {!message.overlayWebpB64 && message.hadOverlay && (
+            <p className="mt-2 text-[10.5px] text-[#D9B36C]/70 italic">{t.overlayNotSaved}</p>
           )}
 
           {message.conflicts && message.conflicts.length > 0 && (
@@ -169,6 +195,22 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                 ))}
               </ul>
             </div>
+          )}
+
+          {message.caveats && message.caveats.length > 0 && (
+            <details className="mt-2 text-[10px] text-[#D9B36C]/70">
+              <summary className="cursor-pointer select-none inline-flex items-center gap-1 hover:text-[#D9B36C]">
+                <Info className="w-3 h-3" />
+                <span>
+                  {t.caveatsTitle} ({message.caveats.length})
+                </span>
+              </summary>
+              <ul className="mt-1 space-y-0.5 list-disc pl-4 text-[#F2E8D5]/65">
+                {message.caveats.map((caveat, i) => (
+                  <li key={i}>{caveat}</li>
+                ))}
+              </ul>
+            </details>
           )}
 
           {!message.pending && steps.length > 0 && (
