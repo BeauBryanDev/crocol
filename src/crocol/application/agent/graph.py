@@ -33,6 +33,7 @@ from crocol.domains.models.traces import TraceEvent
 NodeFn = Callable[[AgentState, AgentDeps], Awaitable[tuple[dict, dict]]]
 Runner = Callable[[AgentState], Awaitable[dict]]
 LOGGER = logging.getLogger("crocol.agent")
+SHORT_LIST = 8
 
 NODES: dict[str, NodeFn] = {
     "analyze": analyze,
@@ -61,6 +62,32 @@ NODES: dict[str, NodeFn] = {
 
 def elapsed_ms(started: float) -> int:
     return int((time.perf_counter() - started) * 1000)
+
+
+def brief(summary: dict) -> str:
+    """Scalars and short lists of the node summary; ids lists are skipped."""
+    parts = []
+    for key, value in summary.items():
+        if isinstance(value, (list, tuple)) and len(value) <= SHORT_LIST:
+            parts.append(f"{key}={','.join(str(v) for v in value)}")
+        elif isinstance(value, (int, float, bool, str)) or value is None:
+            parts.append(f"{key}={value}")
+    return " ".join(parts)
+
+
+def log_node(name: str,
+             status: str,
+             duration_ms: int,
+             state: AgentState,
+             update: dict,
+             summary: dict
+             ) -> None:
+
+    calls = state.get("llm_calls", 0) + update.get("llm_calls", 0)
+    level = logging.INFO if status in ("ok", "skipped") else logging.WARNING
+    LOGGER.log(level, "node %s status=%s ms=%d attempt=%d llm_calls=%d %s",
+               name, status, duration_ms, state.get("attempts", 0), calls,
+               brief(summary))
 
 
 def failed(name: str, reason: str) -> tuple[dict, dict, str]:
@@ -93,7 +120,8 @@ def bind(name: str, node: NodeFn, deps: AgentDeps) -> Runner:
         event = TraceEvent(name, status,
                            elapsed_ms(started),
                            summary)
-        
+        log_node(name, status, event.duration_ms, state, update, summary)
+
         return {**update, "trace": [event]}
 
     return run

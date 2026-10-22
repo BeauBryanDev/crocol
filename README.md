@@ -1,4 +1,4 @@
-# Crocol: a GraphRAG agent for the Middle Magdalena Valley basin (Colombia)
+# Crocol: a knowledge-graph-augmented agentic RAG for the Middle Magdalena Valley basin (Colombia)
 
 **Crocol** is a geologist crocodile, and an AI research agent that answers questions about the **Valle Medio del Magdalena (VMM)** petroleum basin in Colombia. It combines four kinds of evidence in one cited answer:
 - a corpus of geological literature;
@@ -8,46 +8,50 @@
 
 Crocol can also measure the cracks in a rock photo with a custom CNN, and run a numerical oil-well simulator and explain its results.
 
-It is a single-page app (React + FastAPI) built on a **LangGraph multi-node agent** with an advanced RAG pipeline:
+Architecturally, Crocol is **hybrid, knowledge-graph-augmented agentic RAG**: dense + BM25 + knowledge graph + PostGIS + production SQL retrieval, with corrective and self-verification loops. It is a single-page app (React + FastAPI) on a **LangGraph state machine** with:
 - hybrid dense and **BM25** retrieval, fused with **Reciprocal Rank Fusion**;
+- a curated **knowledge graph** and allowlisted **PostGIS** and production SQL functions as further retrieval channels;
 - **Cohere reranking**;
-- LLM evidence grading;
-- claim verification by a model from a different family;
+- LLM evidence grading with a corrective retry (rewrite → retrieve again);
+- claim verification by a model from a different family, with a revise loop;
 - citations rendered from metadata, never from model text.
+
+See [Architecture: what kind of agent Crocol is](#architecture-what-kind-of-agent-crocol-is) for the precise classification.
 
 ![Crocol frontend](./frontend/src/assets/Crocol_Avatar.png)
 
 ---
 
-Crocol is a multi-agent, Advanced RAG system built to answer technical questions about the petroleum geology of Colombia’s Middle Magdalena Valley (VMM) basin. The real engineering problem it solves is not geology itself: it is reliable retrieval and reasoning over a large, heterogeneous, unstructured corpus — 86+ sources spanning geological theses, government technical reports, exploration contracts, and regulatory text — where the answer to a single question often requires combining a narrative passage, a data table, a SQL aggregation over well records, and a spatial relationship between a field and a municipality. A junior geologist, analyst, or researcher working with the VMM basin today has no single tool that lets them ask a natural-language question and get a verified, cited answer instead of manually searching dozens of PDFs.
+Crocol is an agentic, Advanced RAG system built to answer technical questions about the petroleum geology of Colombia’s Middle Magdalena Valley (VMM) basin. The real engineering problem it solves is not geology itself: it is reliable retrieval and reasoning over a large, heterogeneous, unstructured corpus — 111 sources spanning geological theses, government technical reports, exploration contracts, and regulatory text — where the answer to a single question often requires combining a narrative passage, a data table, a SQL aggregation over well records, and a spatial relationship between a field and a municipality. A junior geologist, analyst, or researcher working with the VMM basin today has no single tool that lets them ask a natural-language question and get a verified, cited answer instead of manually searching dozens of PDFs.
 
 Crocol’s scope is deliberately narrow: one basin, three core tools, and a tiered corpus (core basin literature, peripheral regulatory and contract documents, excluded duplicates and unverified AI-generated reports). This is a design choice, not a limitation — a bounded domain allows for a real evaluation suite (gold questions, citation checks, hallucination traps) instead of shallow coverage across all of Colombia’s geology or unrelated fields such as mining or biodiversity. The architecture combines hybrid dense and BM25 retrieval with server-side fusion, a knowledge graph over wells, fields, formations, and municipalities for multi-hop questions, and a parameterized PostGIS/SQL layer for tabular and spatial queries that plain document retrieval cannot answer (rankings, aggregations, “what fields lie within this municipality”).
 
 The graph and SQL nodes exist because a text-only RAG system fails predictably on this kind of corpus: it cannot rank or aggregate numeric data, it loses table structure during chunking, and it cannot connect an entity mentioned in one document (a mineral host, a case study) to a mechanism described in another. A dedicated LangGraph agent routes each question to the right retrieval strategy, verifies claims and citations against the retrieved sources before responding, and explicitly abstains rather than fabricating data when the corpus does not support an answer — behavior confirmed through manual evaluation against the indexed documents. Crocol is, above all, a demonstration of applied Advanced RAG engineering: hybrid search, graph reasoning, structured-data tools, and hallucination control, built on a real and intentionally constrained domain.
 
-I wanted to build up a research multi-agent graph that understand a domain subject like Geology of Colombia on Hydrocarbon Explroation,  apply its hybrid corpus to  provide reliable truthworth scientific answers cited papers and books passages and authors from his corpus and add value to the most important geologic basin in Colombia, I choose this domain becuase it combine  non-structured data such a  pdf papers, research theses, gouverment agencies handbooks and tech manuals with  geo-spatial data such a oil-fields and wells locations,  production history and sismic polygons, hence it  makes it real use of a modern GraphRAG architecture and three LLM  orchestration working as researches on their own tasks.
+I wanted to build up a research agent graph that understand a domain subject like Geology of Colombia on Hydrocarbon Explroation,  apply its hybrid corpus to  provide reliable truthworth scientific answers cited papers and books passages and authors from his corpus and add value to the most important geologic basin in Colombia, I choose this domain becuase it combine  non-structured data such a  pdf papers, research theses, gouverment agencies handbooks and tech manuals with  geo-spatial data such a oil-fields and wells locations,  production history and sismic polygons, hence it  makes it real use of a knowledge-graph-augmented agentic RAG architecture, with models from three providers (Claude, Gemini and the Cohere reranker) working as specialists on their own tasks.
   
 ## Contents
 
 1. [The problem Crocol solves](#the-problem-crocol-solves)
 2. [Knowledge sources](#knowledge-sources)
 3. [System architecture](#system-architecture)
-4. [The agent graph](#the-agent-graph)
-5. [Advanced RAG: hybrid retrieval, BM25, RRF and Cohere rerank](#advanced-rag-hybrid-retrieval-bm25-rrf-and-cohere-rerank)
-6. [Research mode: parallel sub-agents](#research-mode-parallel-sub-agents)
-7. [GraphRAG: the knowledge graph](#graphrag-the-knowledge-graph)
-8. [Spatial layer (PostGIS)](#spatial-layer-postgis)
-9. [Document registry and app logs](#document-registry-and-app-logs)
-10. [Production layer](#production-layer)
-11. [Vision layer: crack segmentation](#vision-layer-crack-segmentation)
-12. [Well simulator layer](#well-simulator-layer)
-13. [Offline document pipeline](#offline-document-pipeline)
-14. [Frontend](#frontend)
-15. [Privacy, safety and cost guards](#privacy-safety-and-cost-guards)
-16. [Tech stack](#tech-stack)
-17. [Getting started](#getting-started)
-18. [Repository layout](#repository-layout)
-19. [Limitations](#limitations)
+4. [Architecture: what kind of agent Crocol is](#architecture-what-kind-of-agent-crocol-is)
+5. [The agent graph](#the-agent-graph)
+6. [Advanced RAG: hybrid retrieval, BM25, RRF and Cohere rerank](#advanced-rag-hybrid-retrieval-bm25-rrf-and-cohere-rerank)
+7. [Research mode: orchestrator–workers fan-out](#research-mode-orchestratorworkers-fan-out)
+8. [Knowledge graph: KG-augmented retrieval](#knowledge-graph-kg-augmented-retrieval)
+9. [Spatial layer (PostGIS)](#spatial-layer-postgis)
+10. [Document registry and app logs](#document-registry-and-app-logs)
+11. [Production layer](#production-layer)
+12. [Vision layer: crack segmentation](#vision-layer-crack-segmentation)
+13. [Well simulator layer](#well-simulator-layer)
+14. [Offline document pipeline](#offline-document-pipeline)
+15. [Frontend](#frontend)
+16. [Privacy, safety and cost guards](#privacy-safety-and-cost-guards)
+17. [Tech stack](#tech-stack)
+18. [Getting started](#getting-started)
+19. [Repository layout](#repository-layout)
+20. [Limitations](#limitations)
 
 ---
 
@@ -81,7 +85,7 @@ All the evidence comes from official or academic sources:
 | **UIS** (Universidad Industrial de Santander) and other universities | Theses on VMM geology, petrophysics, EOR and the Barrancabermeja refinery |
 | **Peer-reviewed literature** | Journal papers and book chapters on Middle Magdalena geology |
 
-The corpus has **103 documents** (69 core, 29 peripheral, 5 excluded duplicates) and **10,946 chunks**. Metadata (authors, year, institution, document type, formations) is curated by hand in `corpus_metadata.yaml`, and citations are rendered from it, for example "(Rueda Acevedo, 2016, p. 41)".
+The corpus has **111 documents** (74 core, 32 peripheral, 5 excluded duplicates) and **11,420 chunks**. Metadata (authors, year, institution, document type, formations) is curated by hand in `corpus_metadata.yaml`, and citations are rendered from it, for example "(Rueda Acevedo, 2016, p. 41)".
 
 Contracts and regulations are kept in separate collections, and a few unverified AI-generated field reports are indexed as `peripheral`. Default searches never return them; when they are used, the answer says so.
 
@@ -144,9 +148,79 @@ Tests replace every port with a fake, so the whole agent graph runs offline.
 
 ---
 
+## Architecture: what kind of agent Crocol is
+
+**Crocol is hybrid, knowledge-graph-augmented agentic RAG: dense + BM25 + KG + PostGIS + production SQL retrieval, with corrective and self-verification loops.** This section explains why each part of that sentence fits and why the trendier labels ("multi-agent", "GraphRAG") don't.
+
+### Control plane: a deterministic state machine, not a supervisor agent
+
+There is no master or orchestrator LLM. The agent is one LangGraph `StateGraph` whose **edges are pure Python functions** (`application/agent/routing.py`). They read typed state (`AgentState`) and the remaining LLM-call budget, and return the next node. LLMs never choose the next node and never call tools through function calling.
+
+| Concern | Decided by | Mechanism |
+|---|---|---|
+| Next node | `routing.py` (code) | Conditional edges over state: `grade.sufficient`, `attempts`, `verified`, `calls_left(state)` |
+| Which tools are relevant | `analyze` (Claude Haiku), **indirectly** | A structured output (`intents`, `places`, `entities`, `well_query`, `query_variants`, `mode`) validated by Pydantic. Tools read it as data. |
+| Tool execution | Nodes (code) | All five retrievers start in parallel; each one returns `skipped` when the analyzer gave it no input |
+| Writing and judging | Specialist LLM roles | `config/roles.py` maps roles to models: analyze, plan, rewrite and interpret on Haiku; synthesize and revise on Sonnet; grade, verify, conflict and vision on Gemini Flash |
+
+The closest thing to an orchestrator is `analyze`, an **LLM router and planner whose decisions are data**: code acts on them. This is the "workflow with LLM steps" end of the agent spectrum rather than the "autonomous tool-calling loop" end. The choice is deliberate, and it is what makes the system:
+- **Cost-bounded.** Every path has a known ceiling of LLM calls (4 quick, 5 with an image, 8 research, 1 simulation), enforced at each branch by `calls_left`. No model can decide to loop again.
+- **Testable offline.** `tests/fakes.py` replaces every port, so the full graph runs in the test suite with no network (400+ tests in about 20 s).
+- **Auditable.** The set of possible paths is small and known. Each run persists a node-by-node trace (`ops.query_log`) and emits structured logs: one line per node, per LLM call (tokens, ms) and per question.
+- **Robust.** `bind()` wraps every node with a timeout and turns any exception into a `partial` answer instead of a crash. Optional nodes (rerank, verify, conflict_check) can fail without degrading the answer status.
+
+### Why "agentic RAG"
+
+Classic RAG is a fixed retrieve → generate pipeline. Crocol adds the control behaviour that defines agentic RAG:
+- **Query planning:** the analyzer writes up to 3 query variants (original, Spanish, English), picks the BM25 query language, and chooses quick or research mode.
+- **Adaptive routing:** retrieval channels are selected by intent; a question with an attached well bypasses retrieval entirely (`simulate → interpret → finalize`); a question with no relevant evidence is routed to a general-knowledge answer or an abstention.
+- **Corrective RAG (CRAG) loop:** `grade` judges whether the evidence is sufficient. If not, `rewrite` changes the search strategy (translation, scope, exact vs conceptual) and the retrievers run again, up to `MAX_ATTEMPTS = 2`.
+- **Self-verification loop:** `verify` splits the draft into claims and checks each one against the evidence with a model from a different family (Gemini checks Claude). A deterministic pass also flags numbers absent from the evidence. `revise` rewrites or removes failing claims, then verify runs again.
+- **Budget gating:** both loops only fire when the remaining call budget can pay for them (`rewrite` needs 4 calls left, `revise` 2). At the current budgets, quick and image questions take the single pass, and revise is reachable in research mode when the plan has at most 2 sub-questions. Raising `LLM_CALL_BUDGET` turns the loops on without code changes; the routing is covered by offline tests.
+
+### Why "hybrid" and "KG-augmented"
+
+Five retrieval channels feed one evidence funnel (fuse → rerank → grade → synthesize):
+
+| Channel | Store | Retrieval | Answers |
+|---|---|---|---|
+| Text | Chroma Cloud | Dense (`text-embedding-3-large`, 1536-d) + BM25 sparse, RRF k = 60 | Narrative and tabular literature, cross-language |
+| Knowledge graph | PostgreSQL `kg.*` | `kg.resolve` → `kg.evidence_chunks` + `kg.facts` / `kg.entity_documents`, `kg.path` between two entities | Entity facts, stratigraphic relations, chunks linked to an entity |
+| Spatial | PostGIS `geo.*` | 11 allowlisted SQL functions (counts, group-by, lists, distances, near-fault) | Well and field inventory, rankings, aggregations, geometry |
+| Production | PostgreSQL `prod.*` | Field or contract resolution, monthly series, Python trend classification | Fiscalized oil and gas production and its trend |
+| Vision | ONNX CNN + Gemini | Crack segmentation and metrics, plus a visual description | Rock-photo fracture analysis |
+
+Structured channels emit **synthetic passages** (database rows, graph facts, crack metrics) that skip the reranker and lead the evidence, so a SQL aggregate and a thesis paragraph are cited side by side in one answer. No model writes SQL: every query is a fixed, parameterized, allowlisted function.
+
+### Why not "GraphRAG" in the Microsoft sense
+
+"GraphRAG" (Edge et al., Microsoft Research, 2024) names a specific pipeline. An LLM extracts entities and relations from every chunk, community detection (Leiden) partitions the graph hierarchically, an LLM writes a summary of each community, and "global" questions are answered by map-reduce over those summaries. Crocol does none of that:
+
+| | Microsoft GraphRAG | Crocol |
+|---|---|---|
+| Graph construction | LLM extraction over the whole corpus | Curated YAML (stratigraphy) + ANH database attributes + document metadata |
+| Entity linking | LLM | Deterministic Aho-Corasick matcher with geological cue-word rules |
+| Graph size and cost | Large; indexing costs scale with corpus tokens | 11,978 entities, 45,480 edges; rebuilt in ~5 s with no LLM call |
+| Communities and summaries | Leiden hierarchy, LLM community reports | None |
+| Query use | Global (community map-reduce) and local search | Local only: entity resolution, facts, linked chunks, ≤ 3-hop paths |
+| Spatial relations | Stored edges, if any | Computed by PostGIS at query time, never materialized |
+| Role in the answer | Primary index | One retrieval channel among five, fused and reranked with the rest |
+
+The accurate term is **knowledge-graph-augmented retrieval**: a small, precise, referencing graph that grounds entities and relations and adds no LLM call to a question.
+
+### Why not "multi-agent"
+
+Multi-agent usually means several autonomous LLM agents, each with its own loop and tools, coordinated by a supervisor or by message passing. Crocol's LLM roles are **specialists inside fixed nodes**: one structured call each, with no private loop or tool choice. The one place with an orchestrator–workers shape is research mode (`plan` → `Send` × ≤ 3 → `investigate` → `merge`). Even there, the workers run a fixed retrieve → fuse → rerank → grade pipeline. It is a map-reduce fan-out under a single state machine, not a society of agents.
+
+### Planned extension
+
+The v2 **SQL sub-agent** is the one place where a bounded agentic step pays off. It would be reached through `well_query.op = "custom"`, and a Sonnet worker would write read-only SQL over curated views for questions the allowlisted functions cannot express. It would run under its own guard rails: a `SELECT`-only role, a function allowlist, an `EXPLAIN` cost guard, `LIMIT` and attack tests. It would be a worker inside the state machine, not a supervisor over it.
+
+---
+
 ## The agent graph
 
-Crocol's agent is a **LangGraph state graph of specialised nodes**. Each node is a small sub-agent with one job, most of them backed by a different model chosen for that job. Every node is wrapped by `bind()`, which adds a timeout, timing and a trace event, and turns errors into a partial answer instead of a crash. The SSE stream shows each step live in the chat.
+Crocol's agent is a **LangGraph state graph of specialised nodes**. Each node has one job; the LLM nodes make one structured call each, to the model chosen for that role, and the edges between nodes are plain Python routing functions. Every node is wrapped by `bind()`, which adds a timeout, timing and a trace event, and turns errors into a partial answer instead of a crash. The SSE stream shows each step live in the chat.
 
 ```mermaid
 flowchart TD
@@ -244,11 +318,11 @@ flowchart LR
 
 ---
 
-## Research mode: parallel sub-agents
+## Research mode: orchestrator–workers fan-out
 
-For broad or comparative questions, `analyze` switches to **research mode**:
-1. A planner splits the question into up to 3 self-contained sub-questions.
-2. Each one is investigated **in parallel** by its own sub-agent, through LangGraph `Send`.
+For broad or comparative questions, `analyze` switches to **research mode**, a map-reduce over sub-questions:
+1. A planner splits the question into up to 3 self-contained sub-questions. This avoids query dilution: an embedding of a multi-topic question lands near the corpus centroid and ranks each topic's best chunk poorly.
+2. Each one is investigated **in parallel** by a worker branch, through LangGraph `Send`. A worker runs a fixed retrieve → fuse → rerank → grade pipeline, with no retry.
 3. The results are merged, checked for conflicts, and written up as a structured report.
 
 ```mermaid
@@ -269,9 +343,9 @@ A research answer runs about 900–1,500 words, with a section per sub-question,
 
 ---
 
-## GraphRAG: the knowledge graph
+## Knowledge graph: KG-augmented retrieval
 
-Vector search misses multi-hop and relational questions:
+This is a curated, referencing knowledge graph used as a retrieval channel, not Microsoft-style GraphRAG (see [Architecture](#why-not-graphrag-in-the-microsoft-sense)). Vector search misses multi-hop and relational questions:
 - *"Which operator runs the field where well Infantas-1613 is, and which documents describe it?"*
 - *"Which members does La Luna have?"*
 - *"What lies above Simití?"*
@@ -304,7 +378,7 @@ erDiagram
 ```
 
 - **A small graph that references, not copies.** Entities point at their `core` rows (wells, fields, municipalities) and their `rag` rows (documents). Spatial relations such as *near* and *inside* are computed by PostGIS at query time, not stored as edges.
-- **Size:** 11,939 entities (all 10,705 VMM wells plus 31 hand-curated stratigraphic units), 45,325 edges, and 9,188 chunk mentions in 3,524 chunks.
+- **Size:** 11,978 entities (all 10,705 VMM wells plus 31 hand-curated stratigraphic units), 45,480 edges, and 9,629 chunk mentions in 3,647 chunks.
 - **Curated stratigraphy:** `kg/formations.yaml` lists the units, members and groups, which unit overlies which, and their ages.
 - **Relations** include `PART_OF` (member of a formation or group), `OVERLIES`, `IN_FIELD`, `OPERATED_BY`, `IN_CONTRACT`, `GOVERNED_BY`, `DESCRIBED_IN` and `AUTHORED_BY`.
 - **Deterministic entity linking:** an Aho-Corasick matcher with geological rules decides when a name in a chunk is really that entity:
@@ -314,7 +388,7 @@ erDiagram
   - citations ("et al.", a year) block place names;
   - the longest match wins.
 - **Graph functions** in SQL (2–80 ms each): `kg.resolve`, `kg.facts`, `kg.neighbors` (≤ 2 hops), `kg.path` (≤ 3 hops), `kg.entity_documents`, `kg.evidence_chunks`.
-- **Agent use:** `retrieve_graph` resolves the entities that `analyze` found. It returns their linked chunks plus one **facts passage** per entity, cited "Crocol-KG-2026", which goes into the same fuse → rerank → grade pipeline as the text evidence.
+- **Agent use:** `retrieve_graph` resolves the entities that `analyze` found. It returns their linked chunks plus one **facts passage** per entity (with the `kg.path` between the first two entities when there are several), cited "Crocol-KG-2026", which goes into the same fuse → rerank → grade pipeline as the text evidence.
 - **Entity cards:** the frontend shows graph cards for a formation or a located place, through `GET /api/graph/entity`.
 
 ---
@@ -389,7 +463,7 @@ erDiagram
   }
 ```
 
-The loader checks that Postgres and Chroma hold the same 10,946 chunks, and records sync checksums. Migrations are plain numbered SQL files, applied by `db/migrate.py`.
+The loader checks that Postgres and Chroma hold the same 11,420 chunks, and records sync checksums. Migrations are plain numbered SQL files, applied by `db/migrate.py`.
 
 ---
 
@@ -620,7 +694,8 @@ spikes/                     experiments, A/B reports, the simulator CLI
 
 ## Limitations
 
-- **Single-turn chat:** each question is answered on its own, with no follow-up memory.
+- **Short follow-up memory:** the browser sends back at most 3 signed memory records (24 h); research mode uses none. There is no server-side conversation store, by design.
+- **Fixed control flow:** no LLM chooses the next step, so questions the allowlisted SQL functions cannot express (for example "the deepest well of the top 5 producing fields") are out of scope until the planned SQL sub-agent.
 - **Text-only extraction:** information that exists only in images (scanned figures, maps) is not indexed.
 - **Crack measurements** are in pixels and image angles, not real-world units.
 - **The well simulator** is single-phase and depletion-only: a screening tool for teaching, not a reservoir-engineering design.

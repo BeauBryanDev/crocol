@@ -1,9 +1,13 @@
+import logging
+import time
 from dataclasses import replace
 
 import httpx
 
+from config.logging import elapsed_ms
 from crocol.domains.models.chunks import Chunk
 
+LOGGER = logging.getLogger("crocol.rerank")
 COHERE_RERANK_URL = "https://api.cohere.com/v2/rerank"
 
 
@@ -43,13 +47,16 @@ class CohereReranker:
             "documents": [document_of(c, self._max_chars) for c in chunks],
             "top_n": len(chunks),
         }
+        started = time.perf_counter()
         async with httpx.AsyncClient(timeout=self._timeout) as client:
             response = await client.post(COHERE_RERANK_URL,
                                          json=body,
                                          headers=self._headers)
-            
+            LOGGER.info("rerank model=%s docs=%d http=%d ms=%d",
+                        self._model, len(chunks), response.status_code,
+                        elapsed_ms(started))
             response.raise_for_status()
-            
+
         ranked = []
         
         for item in response.json()["results"]:

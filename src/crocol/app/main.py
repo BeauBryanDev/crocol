@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
 from config.exceptions import CrocolError, RateLimitedError
+from config.logging import setup_logging
 from config.settings import APP_VERSION, PURGE_EVERY_S, get_settings
 from crocol.app.api.middleware import request_context
 from crocol.app.api.routers import chat, graph, health, stream, wellsim
@@ -125,16 +126,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> FastAPI:
 
-    logging.basicConfig(level=logging.INFO,
-                        format="%(asctime)s %(levelname)s %(name)s "
-                               "%(message)s")
-    
-    for noisy in ("httpx", "httpx2", "google_genai"):
-        
-        logging.getLogger(noisy).setLevel(logging.WARNING)
-        
     settings = get_settings()
-    
+    setup_logging(settings.crocol_log_level, settings.log_file)
+
     docs = None if settings.production else "/api/docs"
     app = FastAPI(title="Crocol API", 
                   version=APP_VERSION,

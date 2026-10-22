@@ -9,6 +9,7 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
 from config.exceptions import CrocolError
+from config.logging import bind_request
 from config.settings import MAX_REQUEST_BYTES
 from crocol.app.api.deps import client_ip
 
@@ -57,6 +58,7 @@ async def request_context(request: Request,
     started = time.perf_counter()
     request_id = request_id_of(request)
     request.state.request_id = request_id
+    bind_request(request_id)
 
     if too_large(request):
         error = CrocolError("the request is too large")
@@ -69,12 +71,11 @@ async def request_context(request: Request,
     for name, value in SECURITY_HEADERS.items():
         response.headers.setdefault(name, value)
 
-    LOGGER.info("%s %s %s %dms client=%s rid=%s",
+    LOGGER.info("%s %s %s %dms client=%s",
                 request.method,
-                request.url.path, 
+                request.url.path,
                 response.status_code,
                 (time.perf_counter() - started) * 1000,
-                ip_hash(client_ip(request)),
-                request_id)
+                ip_hash(client_ip(request)))
     
     return response

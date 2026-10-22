@@ -15,6 +15,7 @@ class LLMResult:
     output_tokens: int = 0
     cross_family: bool = True
     error: str = ""
+    latency_ms: int = 0
 
     @property
     def ok(self) -> bool:

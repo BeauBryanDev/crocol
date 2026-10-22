@@ -1,9 +1,12 @@
+import logging
+import time
 from functools import lru_cache
 from typing import Any
 
 import chromadb
 from chromadb import K, Knn, Rrf, Search
 
+from config.logging import elapsed_ms
 from config.settings import (
     BM25_KEY,
     BM25_WEIGHTS,
@@ -16,6 +19,7 @@ from crocol.infrastructure.vectors.bm25 import encode_query
 from crocol.infrastructure.vectors.chroma_filters import to_where
 from crocol.infrastructure.vectors.embeddings import embed_query
 
+LOGGER = logging.getLogger("crocol.vectors")
 RESULT_FIELDS = [
     "doc_id",
     "source_path",
@@ -107,5 +111,10 @@ class ChromaVectorStore:
         where = to_where(spec)
         if where is not None:
             search = search.where(where)
-            
-        return self.collection.search(search).rows()[0]
+
+        started = time.perf_counter()
+        rows = self.collection.search(search).rows()[0]
+        LOGGER.info("chroma search type=%s filtered=%s limit=%d rows=%d "
+                    "ms=%d", query_type, where is not None, limit, len(rows),
+                    elapsed_ms(started))
+        return rows

@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from collections import Counter
 from dataclasses import replace
 
@@ -6,6 +7,7 @@ from config.roles import FUSE_TOP, PER_DOC_CAP, RERANK_ENABLED, RERANK_TIMEOUT_S
 from crocol.application.agent.state import AgentDeps, AgentState
 from crocol.domains.models.chunks import Chunk
 
+LOGGER = logging.getLogger("crocol.rerank")
 # Database results, graph facts and crack measurements are not prose a
 # reranker can judge; they keep their place at the front.
 SYNTHETIC_TYPES = ("spatial_query", "graph_fact", "crack_model",
@@ -46,6 +48,8 @@ async def rerank_chunks(question: str, chunks: list[Chunk],
         ranked = await asyncio.wait_for(deps.reranker.rerank(question, prose),
                                         timeout=RERANK_TIMEOUT_S)
     except Exception as exc:
+        LOGGER.warning("rerank fell back to fused order: %s",
+                       type(exc).__name__)
         summary.update(status="fallback", error=type(exc).__name__)
         return final_cut(synthetic, prose), summary
 

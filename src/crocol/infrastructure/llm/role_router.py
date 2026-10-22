@@ -1,9 +1,11 @@
 import logging
+import time
 from dataclasses import replace
 from typing import Protocol
 
 from pydantic import BaseModel
 
+from config.logging import elapsed_ms
 from config.roles import FALLBACKS, MAX_OUTPUT_TOKENS, MODELS
 from crocol.application.ports.llm import Images, LLMResult
 
@@ -26,6 +28,15 @@ class Provider(Protocol):
 def is_gemini(model: str) -> bool:
 
     return model.startswith("gemini")
+
+
+def log_call(role: str, result: LLMResult, attempt: int) -> None:
+    """One line per provider call: tokens and time, never prompt text."""
+    status = "ok" if result.ok else result.error or "unparsed"
+    level = logging.INFO if result.ok else logging.WARNING
+    LOGGER.log(level, "llm role=%s model=%s status=%s in=%d out=%d ms=%d "
+               "try=%d", role, result.model, status, result.input_tokens,
+               result.output_tokens, result.latency_ms, attempt)
 
 
 class RoleRouter:
@@ -57,7 +68,8 @@ class RoleRouter:
             return LLMResult(parsed=None, model=model, error="no_provider")
 
         result = LLMResult(parsed=None, model=model, error="not_called")
-        for _ in range(TRIES_PER_MODEL):
+        for attempt in range(1, TRIES_PER_MODEL + 1):
+            started = time.perf_counter()
             try:
                 result = await provider.complete(
                     model, system, user, schema, MAX_OUTPUT_TOKENS[role],
@@ -66,11 +78,10 @@ class RoleRouter:
                 result = LLMResult(parsed=None, model=model,
                                    error=type(exc).__name__)
 
+            result = replace(result, latency_ms=elapsed_ms(started))
+            log_call(role, result, attempt)
             if result.ok or result.error == "refusal":
                 return result
-            LOGGER.warning("llm %s on %s failed: %s (out %d tokens)", role,
-                           model, result.error or "unparsed",
-                           result.output_tokens)
 
         return result
 
@@ -96,6 +107,8 @@ class RoleRouter:
         if fallback is None or fallback == model:
             return replace(result, cross_family=judged_by_other_family)
 
+        LOGGER.warning("llm role=%s falls back %s -> %s", role, model,
+                       fallback)
         backup = await self.attempt(fallback, role, system, user, schema,
                                     images)
         return replace(backup, cross_family=False)

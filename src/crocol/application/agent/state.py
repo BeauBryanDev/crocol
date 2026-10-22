@@ -180,6 +180,7 @@ def usage_of(role: str,
         "model": result.model,
         "input_tokens": result.input_tokens,
         "output_tokens": result.output_tokens,
+        "latency_ms": result.latency_ms,
         "cross_family": result.cross_family,
         "ok": result.ok,
     }

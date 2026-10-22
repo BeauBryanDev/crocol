@@ -1,11 +1,14 @@
 import asyncio
 import hashlib
 import json
+import logging
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
 from config.exceptions import SimulationTimeoutError, SimulatorBusyError
+from config.logging import elapsed_ms
 from config.settings import (
     WELLSIM_LABEL,
     WELLSIM_RUN_TIMEOUT_S,
@@ -16,6 +19,7 @@ from crocol.application.ports.simulation import WellSimulation
 from crocol.application.tools.well_simulation_text import render_sweep
 from crocol.domains.models.chunks import Chunk
 
+LOGGER = logging.getLogger("crocol.wellsim")
 TITLE = "Crocol – simulación numérica de pozo (flujo monofásico, r–z)"
 
 
@@ -44,17 +48,27 @@ class SimulationRunner:
     async def guarded(self, call: Callable[..., dict], *args: Any,
                       timeout: float) -> dict[str, Any]:
         """The slot frees only when the worker thread really finishes."""
+        name = getattr(call, "__name__", "call")
+        started = time.perf_counter()
         try:
             await asyncio.wait_for(self.slot.acquire(), self.wait_s)
         except TimeoutError as exc:
+            LOGGER.warning("wellsim %s busy after %d ms", name,
+                           elapsed_ms(started))
             raise SimulatorBusyError() from exc
 
+        waited = elapsed_ms(started)
         task = asyncio.ensure_future(asyncio.to_thread(call, *args))
         task.add_done_callback(self.release)
         try:
-            return await asyncio.wait_for(asyncio.shield(task), timeout)
+            result = await asyncio.wait_for(asyncio.shield(task), timeout)
         except TimeoutError as exc:
+            LOGGER.warning("wellsim %s timed out after %ss", name, timeout)
             raise SimulationTimeoutError() from exc
+
+        LOGGER.info("wellsim %s wait_ms=%d run_ms=%d", name, waited,
+                    elapsed_ms(started) - waited)
+        return result
 
     async def run(self, params: dict[str, Any]) -> dict[str, Any]:
         return await self.guarded(self.sim.run, params,
