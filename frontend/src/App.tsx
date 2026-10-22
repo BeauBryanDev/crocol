@@ -1,15 +1,25 @@
-import React, { useState } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { LanguageProvider, useLanguage } from './i18n/useLanguage';
 import { Header } from './components/Header/Header';
 import { Footer } from './components/Footer/Footer';
 import { InfoModal, ModalType } from './components/InfoModals/InfoModal';
 import { StratigraphicColumn } from './features/stratigraphy/components/StratigraphicColumn';
 import { ChatPanel } from './features/chat/components/ChatPanel';
-import { GeologicalMapPanel } from './features/geological-map/components/GeologicalMapPanel';
 import { ProductionPanel } from './features/production/components/ProductionPanel';
 import { GeologicalFormation } from './types/stratigraphy.types';
-import { OilField } from './types/map.types';
+import { PendingQuestion } from './types/chat.types';
+import { UiContext, WellParams } from './types/api.types';
+import { WellSimForm } from './features/well-sim/components/WellSimForm';
+import { WellSimResults } from './features/well-sim/components/WellSimResults';
+import { useWellSimStore } from './features/well-sim/store/wellSimStore';
+import { useMapOverlayStore } from './features/map-overlay/store/mapOverlayStore';
+import { CrackResultsPanel } from './features/vision/components/CrackResultsPanel';
 import { Layers, Bot, Map, TrendingUp } from 'lucide-react';
+
+// MapLibre is ~1 MB: load the map panel in its own chunk, after the chat.
+const GeologicalMapPanel = lazy(() =>
+  import('./features/geological-map/components/GeologicalMapPanel').then((m) => ({ default: m.GeologicalMapPanel }))
+);
 
 type MobileTab = 'stratigraphy' | 'chat' | 'map' | 'production';
 
@@ -18,7 +28,10 @@ const CrocolAppContent: React.FC = () => {
   const [modalType, setModalType] = useState<ModalType>(null);
   const [selectedFormation, setSelectedFormation] = useState<GeologicalFormation | null>(null);
   const [investigatingFormation, setInvestigatingFormation] = useState<GeologicalFormation | null>(null);
-  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
+  const [pendingQuestion, setPendingQuestion] = useState<PendingQuestion | null>(null);
+  const wellSimOpen = useWellSimStore((state) => state.formOpen);
+  const mapOverlay = useMapOverlayStore((state) => state.active);
+  const setWellSimOpen = useWellSimStore((state) => state.setFormOpen);
   const [mobileTab, setMobileTab] = useState<MobileTab>('chat');
 
   const handleInvestigateFormation = (formation: GeologicalFormation) => {
@@ -27,17 +40,22 @@ const CrocolAppContent: React.FC = () => {
     setMobileTab('chat');
   };
 
-  const askCrocol = (question: string) => {
-    setPendingQuestion(question);
+  const askCrocol = (question: string, uiContext?: UiContext) => {
+    setPendingQuestion({ text: question, uiContext });
     setMobileTab('chat');
   };
 
-  const handleInvestigateField = (fieldName: string) =>
-    askCrocol(
-      language === 'es'
-        ? `¿Qué dice el corpus sobre la geología y la producción del campo ${fieldName}?`
-        : `What does the corpus say about the geology and production of the ${fieldName} field?`
-    );
+  const askAboutWell = (question: string, well: WellParams, contextLabel: string) => {
+    setPendingQuestion({ text: question, well, contextLabel });
+    setMobileTab('chat');
+  };
+
+  // On phones the form lives in the Column tab, over the stratigraphy.
+  const toggleWellSim = () => {
+    const open = !wellSimOpen;
+    setWellSimOpen(open);
+    if (open) setMobileTab('stratigraphy');
+  };
 
   // Each panel is mounted once; on small screens only the active tab is shown.
   const panelClass = (tab: MobileTab, mobileHeight: string) =>
@@ -61,11 +79,12 @@ const CrocolAppContent: React.FC = () => {
     <div className="min-h-screen bg-[#24180F] text-[#D9B36C] flex flex-col font-sans selection:bg-[#2F7D32] selection:text-[#F2E8D5]">
       <Header
         onOpenKnowMore={() => setModalType('know-more')}
-        onOpenANH={() => setModalType('anh')}
         onFocusChat={() => {
           setMobileTab('chat');
           document.getElementById('crocol-chat-input')?.focus();
         }}
+        onOpenWellSim={toggleWellSim}
+        wellSimOpen={wellSimOpen}
       />
 
       <div className="lg:hidden flex items-center justify-around bg-[#18100a] border-b border-[#F2E8D5]/30 p-1 text-[11px] font-semibold">
@@ -77,34 +96,43 @@ const CrocolAppContent: React.FC = () => {
 
       <main className="flex-1 p-2 md:p-3 overflow-hidden">
         <div className="flex flex-col lg:grid lg:grid-cols-12 gap-2.5 lg:h-[calc(100vh-100px)] lg:min-h-[640px]">
-          <div className={`lg:col-span-3 lg:h-full ${panelClass('stratigraphy', 'h-[620px]')}`}>
+          <div className={`relative lg:col-span-3 lg:h-full ${panelClass('stratigraphy', 'h-[620px]')}`}>
             <StratigraphicColumn
               selectedFormationId={selectedFormation?.id}
               onSelectFormation={setSelectedFormation}
               onInvestigateFormation={handleInvestigateFormation}
             />
+            {wellSimOpen && (
+              <div className="absolute inset-0 z-20">
+                <WellSimForm onAsk={askAboutWell} />
+              </div>
+            )}
           </div>
 
-          <div className={`lg:col-span-5 lg:h-full ${panelClass('chat', 'h-[620px]')}`}>
+          <div className={`lg:col-span-5 lg:h-full ${panelClass('chat', 'h-[calc(100dvh-150px)] min-h-[480px]')}`}>
             <ChatPanel
               investigatingFormation={investigatingFormation}
               onClearInvestigatingFormation={() => setInvestigatingFormation(null)}
               pendingQuestion={pendingQuestion}
               onClearPendingQuestion={() => setPendingQuestion(null)}
+              onShowOnMap={() => setMobileTab('map')}
             />
           </div>
 
           <div className="contents lg:col-span-4 lg:h-full lg:flex lg:flex-col lg:gap-2.5">
-            <div className={`lg:h-[52%] ${panelClass('map', 'h-[560px]')}`}>
-              <GeologicalMapPanel
-                onSelectWell={() => setSelectedFormation(null)}
-                onSelectField={(f: OilField) => handleInvestigateField(f.name)}
-                onInvestigateFeature={askCrocol}
-              />
+            <div className={`relative lg:h-[52%] ${panelClass('map', 'h-[560px]')}`}>
+              <Suspense fallback={<div className="h-full rounded-lg border border-[#F2E8D5] bg-[#24180F]" />}>
+                <GeologicalMapPanel onInvestigateFeature={askCrocol} />
+              </Suspense>
+              {mapOverlay && (
+                <div className="absolute inset-0 z-20">
+                  {mapOverlay === 'wellsim' ? <WellSimResults /> : <CrackResultsPanel />}
+                </div>
+              )}
             </div>
 
             <div className={`lg:h-[48%] ${panelClass('production', 'h-[520px]')}`}>
-              <ProductionPanel onInvestigateField={handleInvestigateField} selectedFieldKey="rubiales" />
+              <ProductionPanel />
             </div>
           </div>
         </div>
