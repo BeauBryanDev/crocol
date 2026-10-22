@@ -18,8 +18,6 @@ Architecturally, Crocol is **hybrid, knowledge-graph-augmented agentic RAG**: de
 
 See [Architecture: what kind of agent Crocol is](#architecture-what-kind-of-agent-crocol-is) for the precise classification.
 
-![Crocol frontend](./frontend/src/assets/Crocol_Avatar.png)
-
 ---
 
 Crocol is an agentic, Advanced RAG system built to answer technical questions about the petroleum geology of Colombia’s Middle Magdalena Valley (VMM) basin. The real engineering problem it solves is not geology itself: it is reliable retrieval and reasoning over a large, heterogeneous, unstructured corpus — 111 sources spanning geological theses, government technical reports, exploration contracts, and regulatory text — where the answer to a single question often requires combining a narrative passage, a data table, a SQL aggregation over well records, and a spatial relationship between a field and a municipality. A junior geologist, analyst, or researcher working with the VMM basin today has no single tool that lets them ask a natural-language question and get a verified, cited answer instead of manually searching dozens of PDFs.
@@ -65,7 +63,7 @@ Knowledge about the VMM is scattered and hard to query:
 
 Crocol aims to be a **live, queryable knowledge base of the VMM basin and its producing fields**. A student or geoscientist can ask, in Spanish or English:
 
-- *"¿Cuál es el ambiente deposicional de la Formación Mugrosa?"* (literature + knowledge graph)
+- *"¿Cuál es el ambiente deposicional de la Formación La Luna ?"* (literature + knowledge graph)
 - *"¿Qué campos tienen pozos en Puerto Wilches y quién los opera?"* (PostGIS + knowledge graph)
 - *"¿Cómo ha evolucionado la producción de crudo de Casabe?"* (ANH production, with a chart and trend)
 - *"Compare the source-rock potential of La Luna and Simití"* (research mode, with conflicting values flagged)

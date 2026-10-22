@@ -1,0 +1,22 @@
+# False friends found while reviewing kg mentions (docs/kg_mentions_review.csv).
+# Owner-editable; re-run pipelines/build_graph.py after changes.
+#
+# strict:        the entity links only next to a cue word (municipio, campo,
+#                pozo, ...), because its bare name is also a common word or a
+#                surname
+# drop_aliases:  aliases never used for linking or name resolution
+
+version: 1
+
+strict:
+  - kind: municipality
+    name: Morales
+    reason: "surname: Morales y The Colombian Petroleum Industry (1958)"
+
+drop_aliases:
+  - kind: organization
+    alias: WESTERN
+    reason: "North-Western / South-Western MMB domain"
+  - kind: organization
+    alias: OCCIDENTAL
+    reason: "sector occidental, Piedemonte Occidental"
