@@ -116,6 +116,16 @@ class Settings(BaseSettings):
     crocol_env: str = "development"
     crocol_cors_origins: str = "http://localhost:5173"
     crocol_trusted_proxy: str | None = None
+    crocol_log_level: str = "INFO"
+    crocol_log_file: str | None = None
+
+    @property
+    def log_file(self) -> Path | None:
+
+        if not self.crocol_log_file:
+            return None
+        path = Path(self.crocol_log_file)
+        return path if path.is_absolute() else ROOT / path
 
     @property
     def cors_origins(self) -> list[str]:

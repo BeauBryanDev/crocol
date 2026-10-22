@@ -6,6 +6,7 @@ import uuid
 from collections.abc import AsyncIterator
 from typing import Any
 
+from config.logging import bind_trace
 from config.roles import (
     RECURSION_LIMIT,
     RESEARCH_MODE_ENABLED,
@@ -15,6 +16,7 @@ from config.settings import APP_VERSION, PIPELINE_VERSION
 from crocol.application.agent.state import initial_state
 from crocol.application.ports.trace_store import TraceStore
 from crocol.application.usecases.memory_records import memory_record
+from crocol.application.usecases.usage_log import log_question
 from crocol.domains.models.answers import Answer
 from crocol.domains.services.memory import MemorySigner
 
@@ -190,6 +192,7 @@ class AskQuestion:
                      ) -> AsyncIterator[dict]:
 
         trace_id = str(uuid.uuid4())
+        bind_trace(trace_id)
         state: dict = dict(initial_state(question, image, well,
                                          history, ui_context))
         started = time.perf_counter()
@@ -208,9 +211,11 @@ class AskQuestion:
                     seen = len(events)
             answer = state.get("answer") or timeout_answer(state)
         except TimeoutError:
+            LOGGER.warning("question hit the %ss total timeout", budget)
             answer = timeout_answer(state)
 
         latency_ms = int((time.perf_counter() - started) * 1000)
+        log_question(state, answer.status, latency_ms)
         record = record_of(trace_id, state, answer, answer.status,
                            latency_ms)
         await self.save(record)
