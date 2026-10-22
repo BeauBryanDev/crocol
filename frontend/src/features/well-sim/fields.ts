@@ -44,7 +44,11 @@ const NON_NEGATIVE: Rule = { min: 0 };
 const OPTIONAL_POSITIVE: Rule = { ...POSITIVE, optional: true };
 const MAX_RAW_LENGTH = 24;
 
-const well = (key: string, label: keyof Strings, unit: string, rule: Rule, visible?: FieldSpec['visible']): FieldSpec => ({
+const well = (key: string, 
+  label: keyof Strings, 
+  unit: string, 
+  rule: Rule,
+  visible?: FieldSpec['visible']): FieldSpec => ({
   key, label, unit, rule, target: 'well', visible
 });
 const option = (key: string, label: keyof Strings, unit: string, rule: Rule): FieldSpec => ({

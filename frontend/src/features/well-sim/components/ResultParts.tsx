@@ -1,5 +1,11 @@
 import React from 'react';
-import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { CartesianGrid, 
+  Line, 
+  LineChart, 
+  ReferenceLine, 
+  ResponsiveContainer, 
+  Tooltip, 
+  XAxis, YAxis } from 'recharts';
 import { useLanguage } from '../../../i18n/useLanguage';
 import { WellCase, WellSweepResponse } from '../../../types/api.types';
 
