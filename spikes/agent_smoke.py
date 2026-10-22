@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 
 import bootstrap
+from config.logging import setup_logging
 from config.roles import MEMORY_TURNS
 
 DESCRIPTION = (
@@ -110,7 +111,10 @@ def main() -> None:
     parser.add_argument("--image", help="photo to analyze with the CNN")
     parser.add_argument("--follow-up", action="append", default=[],
                         help="next turn using Crocol's memory (repeatable)")
+    parser.add_argument("--log-level", default="WARNING",
+                        help="INFO shows each LLM call, node and tool")
     args = parser.parse_args()
+    setup_logging(args.log_level)
     asyncio.run(run([args.question, *args.follow_up], args.image))
 
 
