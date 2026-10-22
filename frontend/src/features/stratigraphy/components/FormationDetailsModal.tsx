@@ -2,6 +2,8 @@ import React from 'react';
 import { GeologicalFormation, GeologicalPeriodMeta } from '../../../types/stratigraphy.types';
 import { useLanguage } from '../../../i18n/useLanguage';
 import { X, Layers, Flame, BookOpen, CheckCircle, HelpCircle, ArrowRight } from 'lucide-react';
+import { EntityCard } from '../../../components/EntityCard/EntityCard';
+import { unitQuery } from '../../../api/graphService';
 
 interface FormationDetailsModalProps {
   formation: GeologicalFormation;
@@ -136,6 +138,8 @@ export const FormationDetailsModal: React.FC<FormationDetailsModalProps> = ({
               <span>{formation.sourceIds.join(', ')}</span>
             </div>
           </div>
+
+          <EntityCard {...unitQuery(formation.name)} />
         </div>
 
         {/* Footer Actions */}
