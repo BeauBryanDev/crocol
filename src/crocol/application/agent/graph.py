@@ -9,6 +9,7 @@ from langgraph.graph.state import CompiledStateGraph
 from config.roles import NODE_TIMEOUT_S, NODE_TIMEOUTS, OPTIONAL_NODES
 from crocol.application.agent import routing
 from crocol.application.agent.nodes.analyze import analyze
+from crocol.application.agent.nodes.enviromentalist import environmentalist
 from crocol.application.agent.nodes.evaluate import conflict_check
 from crocol.application.agent.nodes.fuse import fuse
 from crocol.application.agent.nodes.grade import grade
@@ -55,6 +56,7 @@ NODES: dict[str, NodeFn] = {
     "investigate": investigate,
     "merge": merge,
     "conflict_check": conflict_check,
+    "environmentalist": environmentalist,
     "simulate": simulate,
     "interpret": interpret,
 }
@@ -148,16 +150,19 @@ def build_graph(deps: AgentDeps) -> CompiledStateGraph:
     graph.add_conditional_edges(
         "merge",
         routing.after_merge,
-        ["conflict_check", "synthesize", "abstain", "finalize"],
+        ["conflict_check", "environmentalist", "synthesize", "abstain",
+         "finalize"],
     )
-    graph.add_edge("conflict_check", "synthesize")
+    graph.add_conditional_edges("conflict_check", routing.after_conflict,
+                                ["environmentalist", "synthesize"])
+    graph.add_edge("environmentalist", "synthesize")
     graph.add_edge(retrievers, "fuse")
     graph.add_edge("fuse", "rerank")
     graph.add_edge("rerank", "grade")
     graph.add_conditional_edges(
         "grade",
         routing.after_grade,
-        ["synthesize", "rewrite", "abstain", "finalize"],
+        ["environmentalist", "synthesize", "rewrite", "abstain", "finalize"],
     )
     graph.add_conditional_edges(
         "rewrite", routing.after_rewrite,

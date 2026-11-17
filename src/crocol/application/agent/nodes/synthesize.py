@@ -4,6 +4,7 @@ from crocol.application.agent.context import (
     fit_evidence,
     ui_block,
 )
+from crocol.application.agent.nodes.enviromentalist import brief_block
 from crocol.application.agent.schemas import (
     DraftAnswer,
     load_prompt,
@@ -79,6 +80,7 @@ def synthesis_request(state: AgentState) -> str:
         f"{digest_block(state)}"
         f"{ui_block(state)}"
         f"QUESTION:\n{state['question']}\n\n"
+        f"{brief_block(state.get('environment_brief'))}"
     )
     evidence = writer_evidence(state, header)
     return f"{header}EVIDENCE:\n{render_evidence(evidence)}"

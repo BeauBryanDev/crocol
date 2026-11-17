@@ -78,6 +78,8 @@ class AgentState(TypedDict, total=False):
     overlay: bytes
     mask: bytes
     vision_interpretation: dict[str, Any] | None
+    environment_brief: dict[str, Any] | None
+    briefed: bool
     answer: Answer | None
     partial: bool
     llm_calls: Annotated[int, operator.add]

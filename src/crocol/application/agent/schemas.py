@@ -104,6 +104,16 @@ class DraftAnswer(BaseModel):
     summary: str = ""
 
 
+class EnvironmentalBrief(BaseModel):
+    ecosystems: str
+    species: str
+    pressures: str
+    processes: str
+    governance: str
+    risks: str
+    labels: list[str]
+
+
 class SimulationAnswer(BaseModel):
     language: Literal["es", "en"]
     text: str

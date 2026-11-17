@@ -2,6 +2,8 @@ from langgraph.types import Send
 
 from config.roles import (
     ALLOW_GENERAL_KNOWLEDGE,
+    ENVIRONMENT_INTENTS,
+    ENVIRONMENT_LLM_CALLS,
     LLM_CALL_BUDGET,
     MAX_ATTEMPTS,
     RESEARCH_RESERVED_CALLS,
@@ -19,13 +21,34 @@ SYNTHESIS_CALLS = 2
 REVISION_CALLS = 2
 
 
+def environmental(state: AgentState) -> bool:
+    """An image question is about the rock, never sent to the specialist."""
+    if state.get("image"):
+        return False
+    return bool(set(state.get("intents") or []) & set(ENVIRONMENT_INTENTS))
+
+
+def brief_calls(state: AgentState) -> int:
+
+    return ENVIRONMENT_LLM_CALLS if environmental(state) else 0
+
+
 def calls_left(state: AgentState) -> int:
-    
+
     budget = LLM_CALL_BUDGET[state.get("mode", "quick")]
     if state.get("image"):
         budget += VISION_LLM_CALLS
+    budget += brief_calls(state)
 
     return budget - state.get("llm_calls", 0)
+
+
+def writer(state: AgentState) -> str:
+    """The environmental brief goes first when it is wanted and affordable."""
+    wanted = environmental(state) and not state.get("briefed")
+    if wanted and calls_left(state) >= SYNTHESIS_CALLS + ENVIRONMENT_LLM_CALLS:
+        return "environmentalist"
+    return "synthesize"
 
 
 def without_evidence(state: AgentState) -> str:
@@ -69,13 +92,18 @@ def after_merge(state: AgentState) -> str:
     if not state.get("evidence"):
         return without_evidence(state)
 
-    if calls_left(state) >= RESEARCH_RESERVED_CALLS:
+    if calls_left(state) >= RESEARCH_RESERVED_CALLS + brief_calls(state):
         return "conflict_check"
 
     if calls_left(state) >= SYNTHESIS_CALLS:
-        return "synthesize"
+        return writer(state)
 
     return "finalize"
+
+
+def after_conflict(state: AgentState) -> str:
+
+    return writer(state)
 
 
 def after_grade(state: AgentState) -> str:
@@ -86,16 +114,17 @@ def after_grade(state: AgentState) -> str:
     if grade.get("sufficient") and has_evidence:
         
         if calls_left(state) >= SYNTHESIS_CALLS:
-            return "synthesize"
-        
+            return writer(state)
+
         return "finalize"
-    
+
     can_retry = state.get("attempts", 0) < MAX_ATTEMPTS
-    if can_retry and calls_left(state) >= 1 + 1 + SYNTHESIS_CALLS:
+    retry_calls = 1 + 1 + SYNTHESIS_CALLS + brief_calls(state)
+    if can_retry and calls_left(state) >= retry_calls:
         return "rewrite"
 
     if has_evidence and calls_left(state) >= SYNTHESIS_CALLS:
-        return "synthesize"
+        return writer(state)
 
     return without_evidence(state)
 
