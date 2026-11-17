@@ -75,6 +75,7 @@ INLINE_HEADING_RE = re.compile(
     re.S,
 )
 MAX_HEADING_CHARS = 140
+RUN_IN_ARTICLE_RE = re.compile(r"\s+(?=ART[IÍ]CULO\s+\d+\s*[oº°]?\s*\.\s)")
 
 
 def strip_accents(text):
@@ -226,6 +227,10 @@ def legal_heading(text, n_lines):
 
 def wrapped_article(text):
     return bool(WRAPPED_ARTICLE_RE.match(text)) and ":" not in text and not text.endswith(".")
+
+
+def split_run_in_articles(text):
+    return [part for part in RUN_IN_ARTICLE_RE.split(text) if part.strip()]
 
 
 def split_inline_heading(text):

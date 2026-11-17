@@ -10,6 +10,7 @@ CORPUS_METADATA = ROOT / "corpus_metadata.yaml"
 CORPUS_VOLUMES = (
     (ROOT / "markdown", CORPUS_METADATA),
     (ROOT / "Mardown", ROOT / "Mardown" / "corpus_metadata.yaml"),
+    (ROOT / "MagdalenaRiver_md", ROOT / "MagdalenaRiver_md" / "corpus_metadata.yaml"),
 )
 
 EMBED_MODEL = "text-embedding-3-large"
@@ -28,7 +29,7 @@ BM25_WEIGHTS = {
     "cross_language": 1.0,
 }
 
-CORE_COLLECTIONS = ("VMM_Basin",)
+CORE_COLLECTIONS = ("VMM_Basin", "Magdalena_River")
 CHUNK_POLICY_TYPES = {
     "prose_tables": ("text", "table"),
     "rows": ("table_row",),

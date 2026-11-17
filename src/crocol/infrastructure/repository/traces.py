@@ -104,4 +104,5 @@ class PgTraceStore:
         async with self._pool.connection() as conn:
             cursor = await conn.execute(SELECT_TODAY)
             questions, tokens = await cursor.fetchone()
+            
         return int(questions), int(tokens)

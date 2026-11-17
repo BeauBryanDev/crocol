@@ -32,7 +32,8 @@ import pymupdf
 from audit_pdf import figure_regions
 from clean import join_lines, normalize_text
 from contract_metadata import (DOC_TYPE_NAMES, LEGAL_MARGIN_RE, TOC_PAGE_RE, legal_heading,
-                               legal_metadata, parse_date, split_inline_heading, wrapped_article)
+                               legal_metadata, parse_date, split_inline_heading, split_run_in_articles,
+                               wrapped_article)
 from tables_handling import extract_tables, is_two_column, to_markdown
 
 MARGIN_ZONE = 0.08
@@ -336,6 +337,10 @@ def render_block(block, body_size, levels, legal=False, toc_page=False):
     if FIGURE_CAPTION_RE.match(text):
         return f"*{text}*"
     if legal:
+        pieces = [] if toc_page else split_run_in_articles(text)
+        if len(pieces) > 1:
+            return "\n\n".join(render_block({"lines": [piece]}, body_size, levels, legal=True)
+                                for piece in pieces)
         level = legal_heading(text, len(block["lines"]))
         text = re.sub(r"^ANEXO\s*([A-Z])\b", r"ANEXO \1", text) if level == 2 else text
         if toc_page:

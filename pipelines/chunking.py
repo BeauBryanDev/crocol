@@ -42,7 +42,7 @@ ROW_CARD_MAX_ROWS = 200
 ROW_CARD_NUMERIC_SHARE = 0.3
 TOC_PAGE_SHARE = 0.6
 
-LEGAL_TYPES = {"contract", "agreement", "agreement_annex", "decree", "resolution", "technical_annex",
+LEGAL_TYPES = {"contract", "law", "agreement", "agreement_annex", "decree", "resolution", "technical_annex",
                "explanatory_memorandum", "notice"}
 SKIP_SECTIONS = ["dedicatoria", "agradecimientos", "agradecimiento", "tabla de contenido", "contenido",
                  "indice", "lista de figuras", "lista de tablas", "lista de anexos", "acknowledgements",
