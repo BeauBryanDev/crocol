@@ -8,6 +8,7 @@ import { ProductionSeries, ProductionTrend } from '../../../types/api.types';
 import { ChatMessage } from '../../../types/chat.types';
 import { useWellSimStore } from '../../well-sim/store/wellSimStore';
 import { SimulationCharts } from './SimulationCharts';
+import magdalenaRiver from '../../../assets/magdalena_river.jpeg';
 
 type Strings = (typeof translations)['en'];
 
@@ -176,10 +177,19 @@ export const ProductionPanel: React.FC = () => {
       {source === 'sim' && run ? (
         <SimulationCharts run={run} />
       ) : series.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-center gap-2 px-4">
-          <MessageSquareText className="w-6 h-6 text-[#D9B36C]/70" />
-          <p className="text-[11px] text-[#F2E8D5]/80">{t.prodEmpty}</p>
-          <p className="text-[10px] text-[#D9B36C]/70 italic">{t.prodEmptyExample}</p>
+        <div className="relative flex-1 min-h-0 rounded-md overflow-hidden border border-[#F2E8D5]/30">
+          <img
+            src={magdalenaRiver}
+            alt={t.prodRiverAlt}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#24180F]/95 via-[#24180F]/70 to-transparent px-3 pt-8 pb-2 text-center">
+            <p className="flex items-center justify-center gap-1.5 text-[11px] text-[#F2E8D5]/90">
+              <MessageSquareText className="w-3.5 h-3.5 text-[#D9B36C] shrink-0" />
+              {t.prodEmpty}
+            </p>
+            <p className="text-[10px] text-[#D9B36C]/80 italic">{t.prodEmptyExample}</p>
+          </div>
         </div>
       ) : (
         <div className={`flex-1 min-h-0 ${compact ? 'overflow-y-auto pr-1 space-y-3' : 'flex flex-col'}`}>
