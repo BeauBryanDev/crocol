@@ -14,6 +14,7 @@ MODELS = {
     "verify": GEMINI_FLASH,
     "conflict": GEMINI_FLASH,
     "vision": GEMINI_FLASH,
+    "environment": GEMINI_FLASH,
     "interpret": HAIKU,
 }
 EFFORT = {
@@ -24,6 +25,7 @@ FALLBACKS = {
     "verify": HAIKU,
     "conflict": HAIKU,
     "vision": HAIKU,
+    "environment": HAIKU,
 }
 MAX_OUTPUT_TOKENS = {
     "analyze": 2000,
@@ -35,6 +37,7 @@ MAX_OUTPUT_TOKENS = {
     "verify": 6000,
     "conflict": 2500,
     "vision": 1400,
+    "environment": 3000,
     "interpret": 6000,
 }
 
@@ -65,6 +68,7 @@ NODE_TIMEOUTS = {
     "investigate": 45.0,
     "simulate": 40.0,
     "interpret": 60.0,
+    "environmentalist": 45.0,
 }
 INVESTIGATE_GRADE_TIMEOUT_S = 25.0
 UNGRADED_EVIDENCE = 6
@@ -75,12 +79,15 @@ TOTAL_TIMEOUT_S = {
 }
 RECURSION_LIMIT = 40
 VISION_LLM_CALLS = 1
+ENVIRONMENT_LLM_CALLS = 1
+ENVIRONMENT_INTENTS = ("ecology", "biodiversity", "hydrology", "environmental_impact",
+                       "environmental_regulation")
 
 RERANK_ENABLED = True
 RERANK_MODEL = "rerank-v4.0-fast"
 RERANK_TIMEOUT_S = 6.0
 RERANK_MAX_CHARS = 4000
-OPTIONAL_NODES = ("rerank", "conflict_check", "verify")
+OPTIONAL_NODES = ("rerank", "conflict_check", "verify", "environmentalist")
 ALLOW_GENERAL_KNOWLEDGE = True
 
 MEMORY_TURNS = 3
@@ -90,6 +97,7 @@ MIN_EVIDENCE_CHUNKS = 6
 CONTEXT_BUDGETS = {
     "analyze": 4000,
     "grade": 16000,
+    "environment": 16000,
     "synthesize": 24000,
     "interpret": 8000,
 }
