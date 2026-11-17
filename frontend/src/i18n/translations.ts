@@ -4,15 +4,13 @@ export const translations = {
   es: {
     // Header
     appName: 'CROCOL',
-    appSubtitle: 'MULTI-GRAPH AI EXPERT AGENT IN VMM',
+    appSubtitle: 'MULTI-GRAPH AI EXPERT AGENT IN MAGDALENA RIVER',
     navKnowMore: 'Conoce más',
-    navANH: 'ANH',
-    srcLinksLabel: 'Fuentes de datos del corpus',
-    srcAnhGeovisor: 'ANH · Geovisor de tierras',
-    srcAnhPowerBi: 'ANH · Tablero de datos (Power BI)',
-    srcAnhStats: 'ANH · Datos y estadísticas',
+    srcLinksLabel: 'Conoce el río Magdalena',
     srcSgcData: 'SGC · Datos abiertos',
-    srcSgcGeoscience: 'SGC · Geociencias básicas',
+    srcRiverSouth: 'El sur del Magdalena: naturaleza, historia y cultura',
+    srcRiverTravel: 'Colombia Travel · Experiencias en el río Magdalena',
+    srcRiverEbsco: 'EBSCO · Río Magdalena (Research Starters)',
     chatWithUs: 'Chatea con nosotros',
     languageToggle: 'Idioma',
 
@@ -308,15 +306,13 @@ export const translations = {
   en: {
     // Header
     appName: 'CROCOL',
-    appSubtitle: 'MULTI-GRAPH AI EXPERT AGENT IN VMM',
+    appSubtitle: 'MULTI-GRAPH AI EXPERT AGENT IN MAGDALENA RIVER',
     navKnowMore: 'Know More',
-    navANH: 'ANH',
-    srcLinksLabel: 'Corpus data sources',
-    srcAnhGeovisor: 'ANH · Land geoviewer',
-    srcAnhPowerBi: 'ANH · Data dashboard (Power BI)',
-    srcAnhStats: 'ANH · Data and statistics',
+    srcLinksLabel: 'Discover the Magdalena river',
     srcSgcData: 'SGC · Open data',
-    srcSgcGeoscience: 'SGC · Basic geosciences',
+    srcRiverSouth: 'The southern Magdalena: nature, history and culture',
+    srcRiverTravel: 'Colombia Travel · Magdalena river experiences',
+    srcRiverEbsco: 'EBSCO · Magdalena River (Research Starters)',
     chatWithUs: 'Chat with us',
     languageToggle: 'Language',
 

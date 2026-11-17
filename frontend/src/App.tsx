@@ -8,10 +8,8 @@ import { ChatPanel } from './features/chat/components/ChatPanel';
 import { ProductionPanel } from './features/production/components/ProductionPanel';
 import { GeologicalFormation } from './types/stratigraphy.types';
 import { PendingQuestion } from './types/chat.types';
-import { UiContext, WellParams } from './types/api.types';
-import { WellSimForm } from './features/well-sim/components/WellSimForm';
+import { UiContext } from './types/api.types';
 import { WellSimResults } from './features/well-sim/components/WellSimResults';
-import { useWellSimStore } from './features/well-sim/store/wellSimStore';
 import { useMapOverlayStore } from './features/map-overlay/store/mapOverlayStore';
 import { CrackResultsPanel } from './features/vision/components/CrackResultsPanel';
 import { Layers, Bot, Map, TrendingUp } from 'lucide-react';
@@ -29,9 +27,7 @@ const CrocolAppContent: React.FC = () => {
   const [selectedFormation, setSelectedFormation] = useState<GeologicalFormation | null>(null);
   const [investigatingFormation, setInvestigatingFormation] = useState<GeologicalFormation | null>(null);
   const [pendingQuestion, setPendingQuestion] = useState<PendingQuestion | null>(null);
-  const wellSimOpen = useWellSimStore((state) => state.formOpen);
   const mapOverlay = useMapOverlayStore((state) => state.active);
-  const setWellSimOpen = useWellSimStore((state) => state.setFormOpen);
   const [mobileTab, setMobileTab] = useState<MobileTab>('chat');
 
   const handleInvestigateFormation = (formation: GeologicalFormation) => {
@@ -43,18 +39,6 @@ const CrocolAppContent: React.FC = () => {
   const askCrocol = (question: string, uiContext?: UiContext) => {
     setPendingQuestion({ text: question, uiContext });
     setMobileTab('chat');
-  };
-
-  const askAboutWell = (question: string, well: WellParams, contextLabel: string) => {
-    setPendingQuestion({ text: question, well, contextLabel });
-    setMobileTab('chat');
-  };
-
-  // On phones the form lives in the Column tab, over the stratigraphy.
-  const toggleWellSim = () => {
-    const open = !wellSimOpen;
-    setWellSimOpen(open);
-    if (open) setMobileTab('stratigraphy');
   };
 
   // Each panel is mounted once; on small screens only the active tab is shown.
@@ -83,8 +67,6 @@ const CrocolAppContent: React.FC = () => {
           setMobileTab('chat');
           document.getElementById('crocol-chat-input')?.focus();
         }}
-        onOpenWellSim={toggleWellSim}
-        wellSimOpen={wellSimOpen}
       />
 
       <div className="lg:hidden flex items-center justify-around bg-[#18100a] border-b border-[#F2E8D5]/30 p-1 text-[11px] font-semibold">
@@ -102,11 +84,6 @@ const CrocolAppContent: React.FC = () => {
               onSelectFormation={setSelectedFormation}
               onInvestigateFormation={handleInvestigateFormation}
             />
-            {wellSimOpen && (
-              <div className="absolute inset-0 z-20">
-                <WellSimForm onAsk={askAboutWell} />
-              </div>
-            )}
           </div>
 
           <div className={`lg:col-span-5 lg:h-full ${panelClass('chat', 'h-[calc(100dvh-150px)] min-h-[480px]')}`}>

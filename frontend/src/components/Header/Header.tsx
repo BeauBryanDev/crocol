@@ -1,57 +1,43 @@
 import React from 'react';
 import { useLanguage } from '../../i18n/useLanguage';
-import { Gauge, Globe } from 'lucide-react';
+import { Globe } from 'lucide-react';
 import crocolAvatar from '../../assets/Crocol_Avatar.jpg';
-import anhLogo from '../../assets/ANH.png';
-import oilTowerIcon from '../../assets/oil_towerr.svg';
-import oilContainerIcon from '../../assets/oil_container.svg';
 import colombiaIcon from '../../assets/colombia.svg';
-import rockIcon from '../../assets/rock_icon.svg';
-import OilWell from '../../assets/oil_well.svg';
-import SGC from '../../assets/SGC.webp'
-
-const ANH_HOME_URL = 'https://www.anh.gov.co/en/';
+import riverIcon from '../../assets/river.svg';
+import valleyRiverIcon from '../../assets/valley_river.svg';
+import cascadeIcon from '../../assets/cascade.svg';
 
 const SOURCE_LINKS = [
-  {
-    href: 'https://geovisor.anh.gov.co/tierras/',
-    icon: anhLogo,
-    label: 'srcAnhGeovisor',
-  },
-  {
-    href: 'https://app.powerbi.com/view?r=eyJrIjoiNjZiYWMyMDMtZjU5My00NDFlLWE0YTctY2NmNmVjYjc3OWU1IiwidCI6IjZiZGViMzBlLTA2NDQtNDQyYi1hNjIyLTllNzEwYzM2ODFmMSIsImMiOjR9',
-    icon: oilTowerIcon,
-    label: 'srcAnhPowerBi',
-  },
-  {
-    href: 'https://www.anh.gov.co/es/operaciones-y-regal%C3%ADas/datos-y-estadisticas/',
-    icon: oilContainerIcon,
-    label: 'srcAnhStats',
-  },
   {
     href: 'https://datos.sgc.gov.co/',
     icon: colombiaIcon,
     label: 'srcSgcData',
   },
   {
-    href: 'https://datos.sgc.gov.co/search?tags=Geociencias%2520B%25C3%25A1sicas',
-    icon: rockIcon,
-    label: 'srcSgcGeoscience',
+    href: 'https://www.chaskatours.co/en/post/discover-the-south-nature-history-and-culture-of-the-magdalena-river',
+    icon: riverIcon,
+    label: 'srcRiverSouth',
+  },
+  {
+    href: 'https://colombia.travel/en/macondo-colombia/colombian-destinations/tourist-experiences-magdalena-river-colombia',
+    icon: valleyRiverIcon,
+    label: 'srcRiverTravel',
+  },
+  {
+    href: 'https://www.ebsco.com/research-starters/science/magdalena-river/',
+    icon: cascadeIcon,
+    label: 'srcRiverEbsco',
   },
 ] as const;
 
 interface HeaderProps {
   onOpenKnowMore: () => void;
   onFocusChat: () => void;
-  onOpenWellSim: () => void;
-  wellSimOpen: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onOpenKnowMore,
-  onFocusChat,
-  onOpenWellSim,
-  wellSimOpen
+  onFocusChat
 }) => {
   const { language, toggleLanguage, t } = useLanguage();
 
@@ -88,36 +74,6 @@ export const Header: React.FC<HeaderProps> = ({
           className="text-xs md:text-sm font-medium text-[#F2E8D5] hover:text-[#D9B36C] underline decoration-[#F2E8D5]/60 hover:decoration-[#D9B36C] transition-colors"
         >
           {t.navKnowMore}
-        </button>
-
-        {/* Divider */}
-        <div className="hidden md:block h-5 w-px bg-[#F2E8D5]/40" />
-
-        {/* ANH link */}
-        <a
-          href={ANH_HOME_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs md:text-sm font-semibold tracking-wide text-[#F2E8D5] hover:text-[#D9B36C] transition-colors"
-        >
-          {t.navANH}
-        </a>
-
-        {/* Divider */}
-        <div className="hidden md:block h-5 w-px bg-[#F2E8D5]/40" />
-
-        {/* Well simulator */}
-        <button
-          onClick={onOpenWellSim}
-          aria-pressed={wellSimOpen}
-          className={`flex items-center gap-1 px-2 py-0.5 rounded-md border text-xs md:text-sm font-semibold transition-colors ${
-            wellSimOpen
-              ? 'bg-[#D9B36C] text-[#24180F] border-[#D9B36C]'
-              : 'border-[#F2E8D5]/60 text-[#F2E8D5] hover:text-[#D9B36C] hover:border-[#D9B36C]'
-          }`}
-        >
-          <Gauge className="w-3.5 h-3.5" />
-          {t.wsHeaderButton}
         </button>
       </div>
 
