@@ -37,7 +37,7 @@ export const translations = {
 
     // Chat
     chatTitle: 'Chat con Crocol',
-    chatSubtitle: 'Tu experto en Geología del Petróleo y Pozos en Colombia',
+    chatSubtitle: 'Tu experto en Geología del Rio Grande del  Magdalena',
     chatPlaceholder: 'Escribe tu pregunta aquí...',
     chatSend: 'Enviar',
     chatClear: 'Borrar conversación',
@@ -340,7 +340,7 @@ export const translations = {
 
     // Chat
     chatTitle: 'Chat with Crocol',
-    chatSubtitle: 'Your expert in Petroleum Geology and Wells in Colombia',
+    chatSubtitle: 'Your expert in Magdalena River Colombia',
     chatPlaceholder: 'Write your question here...',
     chatSend: 'Send',
     chatClear: 'Clear conversation',

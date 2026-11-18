@@ -199,3 +199,12 @@ Inners
 
 node_modules
 uploads/
+
+# Private corpus metadata (thesis authors' real names); copied to the server by rsync, never pushed
+/corpus_metadata.yaml
+/Mardown/corpus_metadata.yaml
+
+# Magdalena river corpus (2026-11-17): source PDFs and the extracted volume 3;
+# its corpus_metadata.yaml and manifest.csv reach the server by rsync
+/MagdalenaRiver/
+/MagdalenaRiver_md/

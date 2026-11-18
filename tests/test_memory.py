@@ -135,8 +135,8 @@ def test_persona_is_shared_voice_or_expert() -> None:
     assert "ancient crocodile" in writer.text
     assert "ancient crocodile" not in grader.text
     assert "You work for Crocol" in grader.text
-    assert writer.version.endswith("+voice1")
-    assert grader.version.endswith("+expert1")
+    assert writer.version.endswith("+voice2")
+    assert grader.version.endswith("+expert2")
 
 
 def test_memory_record_has_no_floats_and_kind() -> None:

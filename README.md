@@ -1,18 +1,21 @@
-# Crocol: a knowledge-graph-augmented agentic RAG for the Middle Magdalena Valley basin (Colombia)
+# Crocol: a knowledge-graph-augmented agentic RAG for the Magdalena river of Colombia
 
-**Crocol** is a geologist crocodile, and an AI research agent that answers questions about the **Valle Medio del Magdalena (VMM)** petroleum basin in Colombia. It combines four kinds of evidence in one cited answer:
-- a corpus of geological literature;
-- the ANH well, seismic and fault inventory in PostGIS;
-- a knowledge graph of formations, wells, fields and documents;
-- the official monthly oil and gas production by field.
+**Crocol** is a scientist crocodile, and an AI research agent that answers questions about the **Río Grande de la Magdalena**, Colombia's main river, from its source in the Colombian Massif to its delta at Bocas de Ceniza. Its first subject is the river's **ecology and environment**: fish and their migrations, flora, wetlands and ciénagas, forests and páramos, threatened species, hydrology and sediments, the pressures on the river, its environmental law, and its history and geography. Its second subject is the **geology** of the basin, including the petroleum geology of the Middle Magdalena Valley (VMM), treated as one of the natural resources exploited in the basin.
 
-Crocol can also measure the cracks in a rock photo with a custom CNN, and run a numerical oil-well simulator and explain its results.
+It combines several kinds of evidence in one cited answer:
+- a corpus of environmental, biological, historical and geological literature, and the river's environmental laws;
+- an **environmental specialist** (Gemini) that reads the evidence as an ecologist before the answer is written;
+- a knowledge graph of places, organizations, formations, wells, fields and documents;
+- the ANH well, seismic and fault inventory in PostGIS, and the official monthly oil and gas production by field.
+
+Crocol can also measure the cracks in a rock photo with a custom CNN.
 
 Architecturally, Crocol is **hybrid, knowledge-graph-augmented agentic RAG**: dense + BM25 + knowledge graph + PostGIS + production SQL retrieval, with corrective and self-verification loops. It is a single-page app (React + FastAPI) on a **LangGraph state machine** with:
 - hybrid dense and **BM25** retrieval, fused with **Reciprocal Rank Fusion**;
 - a curated **knowledge graph** and allowlisted **PostGIS** and production SQL functions as further retrieval channels;
 - **Cohere reranking**;
 - LLM evidence grading with a corrective retry (rewrite → retrieve again);
+- an **environmental specialist brief** (Gemini) that structures ecological questions before the writer (Claude Sonnet) answers;
 - claim verification by a model from a different family, with a revise loop;
 - citations rendered from metadata, never from model text.
 
@@ -20,13 +23,13 @@ See [Architecture: what kind of agent Crocol is](#architecture-what-kind-of-agen
 
 ---
 
-Crocol is an agentic, Advanced RAG system built to answer technical questions about the petroleum geology of Colombia’s Middle Magdalena Valley (VMM) basin. The real engineering problem it solves is not geology itself: it is reliable retrieval and reasoning over a large, heterogeneous, unstructured corpus — 111 sources spanning geological theses, government technical reports, exploration contracts, and regulatory text — where the answer to a single question often requires combining a narrative passage, a data table, a SQL aggregation over well records, and a spatial relationship between a field and a municipality. A junior geologist, analyst, or researcher working with the VMM basin today has no single tool that lets them ask a natural-language question and get a verified, cited answer instead of manually searching dozens of PDFs.
+Crocol is an agentic, Advanced RAG system built to answer scientific questions about the Magdalena river: its ecosystems and species, the processes that shape it, the pressures on it and the laws that protect it. The real engineering problem it solves is reliable retrieval and reasoning over a large, heterogeneous, unstructured corpus: 124 sources spanning fish and flora monographs, a national red book of threatened plants, environmental licensing reports, environmental laws, river management plans, history books, geological theses, government technical reports and exploration contracts. The answer to one question often requires combining a narrative passage, a species sheet, a data table, a law article and, for the oil and gas side, a SQL aggregation over well records. A student, researcher or environmental analyst working on the Magdalena today has no single tool that lets them ask a natural-language question and get a verified, cited answer instead of manually searching dozens of PDFs.
 
-Crocol’s scope is deliberately narrow: one basin, three core tools, and a tiered corpus (core basin literature, peripheral regulatory and contract documents, excluded duplicates and unverified AI-generated reports). This is a design choice, not a limitation — a bounded domain allows for a real evaluation suite (gold questions, citation checks, hallucination traps) instead of shallow coverage across all of Colombia’s geology or unrelated fields such as mining or biodiversity. The architecture combines hybrid dense and BM25 retrieval with server-side fusion, a knowledge graph over wells, fields, formations, and municipalities for multi-hop questions, and a parameterized PostGIS/SQL layer for tabular and spatial queries that plain document retrieval cannot answer (rankings, aggregations, “what fields lie within this municipality”).
+Crocol's scope is bounded: one river and its basin, and a tiered corpus (core river and basin literature, peripheral regulatory and contract documents, excluded duplicates and unverified AI-generated reports). A bounded domain allows for a real evaluation suite (gold questions, citation checks, hallucination traps) instead of shallow coverage of everything. The architecture combines hybrid dense and BM25 retrieval with server-side fusion, a knowledge graph for multi-hop questions, a parameterized PostGIS/SQL layer for the tabular and spatial questions that plain document retrieval cannot answer (rankings, aggregations, "which fields lie within this municipality"), and a specialist node that reads environmental evidence with an ecologist's frame (drivers, pressures, state, impacts, responses).
 
-The graph and SQL nodes exist because a text-only RAG system fails predictably on this kind of corpus: it cannot rank or aggregate numeric data, it loses table structure during chunking, and it cannot connect an entity mentioned in one document (a mineral host, a case study) to a mechanism described in another. A dedicated LangGraph agent routes each question to the right retrieval strategy, verifies claims and citations against the retrieved sources before responding, and explicitly abstains rather than fabricating data when the corpus does not support an answer — behavior confirmed through manual evaluation against the indexed documents. Crocol is, above all, a demonstration of applied Advanced RAG engineering: hybrid search, graph reasoning, structured-data tools, and hallucination control, built on a real and intentionally constrained domain.
+The graph and SQL nodes exist because a text-only RAG system fails predictably on this kind of corpus: it cannot rank or aggregate numeric data, it loses table structure during chunking, and it cannot connect an entity mentioned in one document to a mechanism described in another. A dedicated LangGraph agent routes each question to the right retrieval strategy, verifies claims and citations against the retrieved sources before responding, and explicitly abstains rather than fabricating data when the corpus does not support an answer. Crocol is, above all, a demonstration of applied Advanced RAG engineering: hybrid search, graph reasoning, structured-data tools, specialist roles and hallucination control, built on a real domain.
 
-I wanted to build up a research agent graph that understand a domain subject like Geology of Colombia on Hydrocarbon Explroation,  apply its hybrid corpus to  provide reliable truthworth scientific answers cited papers and books passages and authors from his corpus and add value to the most important geologic basin in Colombia, I choose this domain becuase it combine  non-structured data such a  pdf papers, research theses, gouverment agencies handbooks and tech manuals with  geo-spatial data such a oil-fields and wells locations,  production history and sismic polygons, hence it  makes it real use of a knowledge-graph-augmented agentic RAG architecture, with models from three providers (Claude, Gemini and the Cohere reranker) working as specialists on their own tasks.
+I wanted to build a research agent that understands a real domain, the Magdalena river of Colombia, and gives reliable, trustworthy scientific answers that cite the passages, books and authors of its corpus. The project started on the petroleum geology of the Middle Magdalena Valley and widened to the whole river: its ecology, its environment, its history and its importance for Colombia. The domain combines unstructured data (monographs, papers, theses, laws, government reports) with geospatial and tabular data (wells, fields, production series, seismic surveys), so it makes real use of a knowledge-graph-augmented agentic RAG architecture, with models from three providers (Claude, Gemini and the Cohere reranker) working as specialists on their own tasks.
   
 ## Contents
 
@@ -42,33 +45,34 @@ I wanted to build up a research agent graph that understand a domain subject lik
 10. [Document registry and app logs](#document-registry-and-app-logs)
 11. [Production layer](#production-layer)
 12. [Vision layer: crack segmentation](#vision-layer-crack-segmentation)
-13. [Well simulator layer](#well-simulator-layer)
-14. [Offline document pipeline](#offline-document-pipeline)
-15. [Frontend](#frontend)
-16. [Privacy, safety and cost guards](#privacy-safety-and-cost-guards)
-17. [Tech stack](#tech-stack)
-18. [Getting started](#getting-started)
-19. [Repository layout](#repository-layout)
-20. [Limitations](#limitations)
+13. [Offline document pipeline](#offline-document-pipeline)
+14. [Frontend](#frontend)
+15. [Privacy, safety and cost guards](#privacy-safety-and-cost-guards)
+16. [Tech stack](#tech-stack)
+17. [Getting started](#getting-started)
+18. [Repository layout](#repository-layout)
+19. [Limitations](#limitations)
 
 ---
 
 ## The problem Crocol solves
 
-Knowledge about the VMM is scattered and hard to query:
-- **Geology** lives in hundreds of pages of PDFs: SGC special publications, ANH bidding-round reports, university theses and journal papers, mostly in Spanish, with key numbers buried in tables.
-- **Operational facts** (which wells are in which field, who operates them, which seismic surveys cover an area) live in large ANH GeoJSON exports that no one can read by eye.
-- **Production** lives in monthly ANH spreadsheets.
-- **Relationships** (this well belongs to that field, which this thesis describes, which sits on the La Luna Formation) exist only in an expert's head.
+Knowledge about the Magdalena river is scattered and hard to query:
+- **Ecology and biodiversity** live in long monographs: the fish of the basin, the flora of the Magdalena Medio, a national red book of threatened plants, regional biodiversity reviews, mostly in Spanish, with key facts buried in species sheets.
+- **Environmental pressures and governance** live in licensing reports (ANLA), river management plans (CONPES) and laws (Ley 99 de 1993, Ley 161 de 1994 and Cormagdalena).
+- **History and geography** live in books and old society bulletins about the river's discovery, navigation and settlement.
+- **Geology and natural resources** live in hundreds of pages of SGC, ANH and university PDFs, in large ANH GeoJSON exports and in monthly production spreadsheets.
+- **Relationships** (this town lies on the river, this study describes that ciénaga, this field operates in that municipality) exist only in an expert's head.
 
-Crocol aims to be a **live, queryable knowledge base of the VMM basin and its producing fields**. A student or geoscientist can ask, in Spanish or English:
+Crocol aims to be a **live, queryable knowledge base of the Magdalena river and its basin**. A student, researcher or curious citizen can ask, in Spanish or English:
 
-- *"¿Cuál es el ambiente deposicional de la Formación La Luna ?"* (literature + knowledge graph)
+- *"¿Por qué son importantes las ciénagas para los peces del Magdalena?"* (ecology literature + environmental specialist)
+- *"¿Cómo afecta la producción de hidrocarburos a la vida de los peces del río?"* (research mode: environmental impact across the corpus)
+- *"¿Qué funciones tiene Cormagdalena según la Ley 161 de 1994?"* (law articles, exact lookup)
+- *"How did navigation on the Magdalena shape colonial trade?"* (history, cross-language)
 - *"¿Qué campos tienen pozos en Puerto Wilches y quién los opera?"* (PostGIS + knowledge graph)
 - *"¿Cómo ha evolucionado la producción de crudo de Casabe?"* (ANH production, with a chart and trend)
-- *"Compare the source-rock potential of La Luna and Simití"* (research mode, with conflicting values flagged)
 - a rock photo and *"¿Qué tan fracturada está esta roca?"* (crack CNN + visual interpretation)
-- a well description and *"¿A qué tasa debo operar este pozo?"* (numerical well simulator)
 
 Every answer cites its sources, and the agent says when the evidence is partial or when sources disagree.
 
@@ -78,12 +82,14 @@ All the evidence comes from official or academic sources:
 
 | Source | What Crocol uses |
 |---|---|
-| **ANH** (Agencia Nacional de Hidrocarburos) | *Banco de Información Petrolera*: 10,705 VMM wells, 2,262 2D seismic lines, 57 3D surveys, faults; fiscalized oil and gas production by field (2025–2026); the 2021 bidding round; the 2022 E&P contracts and Acuerdo 02 de 2017; reserves reports |
-| **SGC** (Servicio Geológico Colombiano) | Special publications on VMM stratigraphy and petroleum systems; 2026 reports on the Cretaceous source rocks; the live *Mapa Geológico de Colombia 2023* on the map |
-| **UIS** (Universidad Industrial de Santander) and other universities | Theses on VMM geology, petrophysics, EOR and the Barrancabermeja refinery |
-| **Peer-reviewed literature** | Journal papers and book chapters on Middle Magdalena geology |
+| **Instituto Humboldt** and **Universidad de Antioquia** | *Peces de la cuenca del río Magdalena* (2020); the *Libro rojo de plantas de Colombia*; the flora of the Magdalena Medio (with ISAGEN) |
+| **Environmental authorities and the State** | ANLA regional alert report for the Middle Magdalena; the CONPES 2764 plan for the recovery of the river; Ley 99 de 1993 (SINA, Ministry of the Environment); Ley 161 de 1994 (Cormagdalena) |
+| **History and geography** | The Ministry of Culture's history of the river (1560–1639); the Sociedad Geográfica de Colombia's historical compendium (1939) |
+| **Peer-reviewed literature** | Biodiversity and ecosystem reviews (Rev. Acad. Colomb. Cienc.), *Los sedimentos del río Magdalena* (Restrepo Ángel, ed.); journal papers on Middle Magdalena geology |
+| **ANH** (Agencia Nacional de Hidrocarburos) | *Banco de Información Petrolera*: 10,705 VMM wells, 2,262 2D seismic lines, 57 3D surveys, faults; fiscalized oil and gas production by field (2025–2026); E&P contracts and regulation; reserves reports |
+| **SGC** (Servicio Geológico Colombiano) and **UIS** | Special publications and theses on VMM stratigraphy, petroleum systems and petrophysics; the live *Mapa Geológico de Colombia 2023* on the map |
 
-The corpus has **111 documents** (74 core, 32 peripheral, 5 excluded duplicates) and **11,420 chunks**. Metadata (authors, year, institution, document type, formations) is curated by hand in `corpus_metadata.yaml`, and citations are rendered from it, for example "(Rueda Acevedo, 2016, p. 41)".
+The corpus has **124 documents** (87 core, 32 peripheral, 5 excluded duplicates) and **13,725 chunks**, in two core collections: `Magdalena_River` (the river's ecology, environment, law and history) and `VMM_Basin` (geology). Metadata (authors, year, institution, document type, topics) is curated by hand in `corpus_metadata.yaml` files, and citations are rendered from it, for example "(Jiménez-Segura & Lasso, 2020, p. 40)".
 
 Contracts and regulations are kept in separate collections, and a few unverified AI-generated field reports are indexed as `peripheral`. Default searches never return them; when they are used, the answer says so.
 
@@ -94,7 +100,7 @@ Contracts and regulations are kept in separate collections, and a few unverified
 ```mermaid
 flowchart LR
   subgraph Offline["Offline pipeline (pipelines/)"]
-    PDF["PDFs: SGC, ANH, UIS, papers"] --> MD["Markdown + tables<br/>(PyMuPDF, no OCR)"]
+    PDF["PDFs: Humboldt, ANLA, laws,<br/>history, SGC, ANH, UIS"] --> MD["Markdown + tables<br/>(PyMuPDF, no OCR)"]
     MD --> CH["Chunking<br/>(section, table, row cards)"]
     CH --> EMB["OpenAI embeddings<br/>text-embedding-3-large"]
     GEO["ANH GeoJSON + CSV"] --> SP["load_spatial.py"]
@@ -113,10 +119,9 @@ flowchart LR
   PG --> KG["build_graph.py<br/>(knowledge graph)"] --> PG
 
   subgraph Backend["FastAPI backend"]
-    API["/api/chat · /chat/stream (SSE)<br/>/image · /wellsim · /map · /graph"]
+    API["/api/chat · /chat/stream (SSE)<br/>/image · /map · /graph"]
     AGENT["LangGraph agent"]
     ONNX["ONNX crack CNN"]
-    SIM["Well simulator"]
   end
 
   subgraph LLMs["Model APIs"]
@@ -125,12 +130,11 @@ flowchart LR
     COH["Cohere rerank"]
   end
 
-  SPA["React SPA<br/>chat · map · production · Well-Sim"] <--> API
+  SPA["React SPA<br/>chat · map · production"] <--> API
   API --> AGENT
   AGENT <--> CHROMA
   AGENT <--> PG
   AGENT --> ONNX
-  AGENT --> SIM
   AGENT <--> CLAUDE
   AGENT <--> GEM
   AGENT <--> COH
@@ -139,7 +143,7 @@ flowchart LR
 The code follows a ports-and-adapters layout:
 - `domains/` holds pure standard-library logic (citations, fusion, linking, trends).
 - `application/` holds the agent graph, the tools and the **ports** (protocols).
-- `infrastructure/` holds the adapters (Chroma, psycopg, Claude, Gemini, Cohere, ONNX, the simulator). It is the only layer that imports SDKs or numerical libraries.
+- `infrastructure/` holds the adapters (Chroma, psycopg, Claude, Gemini, Cohere, ONNX). It is the only layer that imports SDKs or numerical libraries.
 - `src/bootstrap.py` is the composition root.
 
 Tests replace every port with a fake, so the whole agent graph runs offline.
@@ -159,19 +163,67 @@ There is no master or orchestrator LLM. The agent is one LangGraph `StateGraph` 
 | Next node | `routing.py` (code) | Conditional edges over state: `grade.sufficient`, `attempts`, `verified`, `calls_left(state)` |
 | Which tools are relevant | `analyze` (Claude Haiku), **indirectly** | A structured output (`intents`, `places`, `entities`, `well_query`, `query_variants`, `mode`) validated by Pydantic. Tools read it as data. |
 | Tool execution | Nodes (code) | All five retrievers start in parallel; each one returns `skipped` when the analyzer gave it no input |
-| Writing and judging | Specialist LLM roles | `config/roles.py` maps roles to models: analyze, plan, rewrite and interpret on Haiku; synthesize and revise on Sonnet; grade, verify, conflict and vision on Gemini Flash |
+| Writing and judging | Specialist LLM roles | `config/roles.py` maps roles to models: analyze, plan and rewrite on Haiku; synthesize and revise on Sonnet; grade, verify, conflict, vision and environment on Gemini Flash |
 
 The closest thing to an orchestrator is `analyze`, an **LLM router and planner whose decisions are data**: code acts on them. This is the "workflow with LLM steps" end of the agent spectrum rather than the "autonomous tool-calling loop" end. The choice is deliberate, and it is what makes the system:
-- **Cost-bounded.** Every path has a known ceiling of LLM calls (4 quick, 5 with an image, 8 research, 1 simulation), enforced at each branch by `calls_left`. No model can decide to loop again.
+- **Cost-bounded.** Every path has a known ceiling of LLM calls (4 quick, 5 with an image, 8 research, plus 1 for the environmental specialist on environmental questions), enforced at each branch by `calls_left`. No model can decide to loop again.
 - **Testable offline.** `tests/fakes.py` replaces every port, so the full graph runs in the test suite with no network (400+ tests in about 20 s).
 - **Auditable.** The set of possible paths is small and known. Each run persists a node-by-node trace (`ops.query_log`) and emits structured logs: one line per node, per LLM call (tokens, ms) and per question.
-- **Robust.** `bind()` wraps every node with a timeout and turns any exception into a `partial` answer instead of a crash. Optional nodes (rerank, verify, conflict_check) can fail without degrading the answer status.
+- **Robust.** `bind()` wraps every node with a timeout and turns any exception into a `partial` answer instead of a crash. Optional nodes (rerank, verify, conflict_check, environmentalist) can fail without degrading the answer status.
+
+### Roles: which model does what, and why
+
+Each LLM role is one structured call with its own prompt, Pydantic output schema, output cap and timeout. Models are assigned by what the job needs, and the judging roles are deliberately from a different family than the writer, so a model never grades its own work.
+
+| Role | Model | Output | Why this model |
+|---|---|---|---|
+| `analyze` | Claude Haiku | `Analysis`: language, mode, intents, variants, places, entities, well query, follow-up rewrite | Fast and cheap, reliable structured output for routing data |
+| `plan` | Claude Haiku | `ResearchPlan`: ≤ 4 self-contained sub-questions | A small decomposition task |
+| `rewrite` | Claude Haiku | `RewritePlan`: a different search strategy | Must change at least one strategy field; repetition is detected in code |
+| `grade` | Gemini Flash | `Grade`: relevant labels, sufficient, missing | Long input (16 passages), short judgement; a different family from the writer |
+| `conflict` | Gemini Flash | `ConflictRecord`s with verbatim quotes | Extraction; Python keeps only quotes found character by character |
+| `environment` | Gemini Flash | `EnvironmentalBrief`: six sections + labels | A second expert reading of the evidence, from a different family than the writer |
+| `synthesize` / `revise` | Claude Sonnet | `DraftAnswer`: text, cited labels, memory summary | The only long-form writer; carries the Crocol persona |
+| `verify` | Gemini Flash | `Verification`: atomic claims with verdicts | Cross-family checking: Gemini judges Claude's answer |
+| `vision` | Gemini Flash | `VisualDiagnosis` | Multimodal; reads the photo next to the CNN's measurements |
+
+All roles share one persona file. The writer gets Crocol's voice (`_persona_voice.md`: the ancient crocodile of the Magdalena, commanding, apologizes at most once), and every other role gets a neutral expert frame (`_persona_expert.md`). Prompts are versioned (`15+voice2`), and every LLM call is logged with role, model, prompt version, tokens and milliseconds. If a Gemini call fails twice, the router falls back to Haiku; errors come back as data, never as exceptions.
+
+### Shared state and the budget arithmetic
+
+Nodes never call each other. Each one reads the typed `AgentState` and returns a partial update; LangGraph merges it with **reducers**: lists of trace events, usage records and errors are appended, `llm_calls` is summed, and the retrieval channels merge by name. The parallel research workers can therefore write into the same state without locks.
+
+The budget is a single number, `calls_left(state)` = the mode budget (4 quick, 8 research), + 1 with an image, + 1 for an environmental question, − the calls already made. Every conditional edge checks it before choosing a branch that costs calls:
+- the writer needs 2 (synthesize + verify);
+- the environmental brief needs 1 more, so `writer()` sends a question to the specialist only when at least 3 calls are left;
+- `rewrite` needs 4 plus the brief, so a retry never starves the answer;
+- `revise` needs 2, so it fires only when a revised draft can be checked again.
+
+Because the arithmetic lives in pure functions, every path is covered by offline tests that assert the exact sequence of roles called (for example `analyze → grade → environment → synthesize → verify`).
+
+### Anatomy of a live question
+
+A research question asked on the deployed app, about how hydrocarbon production and spills affect the fish of the river, read from the service logs (one line per node and per LLM call; the question text itself is never logged):
+
+| Step | Node | Model | Time | Result |
+|---|---|---|---|---|
+| 1 | `analyze` | Haiku | 4.6 s | research mode; intents `ecology, biodiversity, environmental_impact` |
+| 2 | `plan` | Haiku | 6.0 s | 2 sub-questions |
+| 3 | `investigate` × 2, in parallel | Gemini (grade) | 3.6 / 3.9 s | Chroma 0.3 s and Cohere 0.2–0.3 s each; 2 and 4 relevant passages |
+| 4 | `merge` | (code) | 0 ms | 5 passages from 3 documents, relabelled C1–C5 |
+| 5 | `conflict_check` | Gemini | 5.8 s | no numeric conflicts |
+| 6 | `environmentalist` | Gemini | 6.4 s | brief over C1–C5 |
+| 7 | `synthesize` | Sonnet | 20.2 s | 6,800-character report citing C1–C5 and [KG] |
+| 8 | `verify` | Gemini | 13.3 s | 44 claims, 44 supported |
+| 9 | `finalize` | (code) | 0.1 s | 6 citations, 4 references rendered from `rag.documents` |
+
+Total: 60 s, 8 LLM calls (inside the budget of 9), about 45k input and 10.5k output tokens. The SSE stream shows each of these steps in the chat as it happens.
 
 ### Why "agentic RAG"
 
 Classic RAG is a fixed retrieve → generate pipeline. Crocol adds the control behaviour that defines agentic RAG:
 - **Query planning:** the analyzer writes up to 3 query variants (original, Spanish, English), picks the BM25 query language, and chooses quick or research mode.
-- **Adaptive routing:** retrieval channels are selected by intent; a question with an attached well bypasses retrieval entirely (`simulate → interpret → finalize`); a question with no relevant evidence is routed to a general-knowledge answer or an abstention.
+- **Adaptive routing:** retrieval channels are selected by intent; an environmental question (ecology, biodiversity, hydrology, environmental impact or regulation) goes through the environmental specialist before the writer; a question with no relevant evidence is routed to a general-knowledge answer or an abstention.
 - **Corrective RAG (CRAG) loop:** `grade` judges whether the evidence is sufficient. If not, `rewrite` changes the search strategy (translation, scope, exact vs conceptual) and the retrievers run again, up to `MAX_ATTEMPTS = 2`.
 - **Self-verification loop:** `verify` splits the draft into claims and checks each one against the evidence with a model from a different family (Gemini checks Claude). A deterministic pass also flags numbers absent from the evidence. `revise` rewrites or removes failing claims, then verify runs again.
 - **Budget gating:** both loops only fire when the remaining call budget can pay for them (`rewrite` needs 4 calls left, `revise` 2). At the current budgets, quick and image questions take the single pass, and revise is reachable in research mode when the plan has at most 2 sub-questions. Raising `LLM_CALL_BUDGET` turns the loops on without code changes; the routing is covered by offline tests.
@@ -198,7 +250,7 @@ Structured channels emit **synthetic passages** (database rows, graph facts, cra
 |---|---|---|
 | Graph construction | LLM extraction over the whole corpus | Curated YAML (stratigraphy) + ANH database attributes + document metadata |
 | Entity linking | LLM | Deterministic Aho-Corasick matcher with geological cue-word rules |
-| Graph size and cost | Large; indexing costs scale with corpus tokens | 11,978 entities, 45,480 edges; rebuilt in ~5 s with no LLM call |
+| Graph size and cost | Large; indexing costs scale with corpus tokens | 12,072 entities, 45,634 edges; rebuilt in ~5 s with no LLM call |
 | Communities and summaries | Leiden hierarchy, LLM community reports | None |
 | Query use | Global (community map-reduce) and local search | Local only: entity resolution, facts, linked chunks, ≤ 3-hop paths |
 | Spatial relations | Stored edges, if any | Computed by PostGIS at query time, never materialized |
@@ -208,7 +260,7 @@ The accurate term is **knowledge-graph-augmented retrieval**: a small, precise, 
 
 ### Why not "multi-agent"
 
-Multi-agent usually means several autonomous LLM agents, each with its own loop and tools, coordinated by a supervisor or by message passing. Crocol's LLM roles are **specialists inside fixed nodes**: one structured call each, with no private loop or tool choice. The one place with an orchestrator–workers shape is research mode (`plan` → `Send` × ≤ 3 → `investigate` → `merge`). Even there, the workers run a fixed retrieve → fuse → rerank → grade pipeline. It is a map-reduce fan-out under a single state machine, not a society of agents.
+Multi-agent usually means several autonomous LLM agents, each with its own loop and tools, coordinated by a supervisor or by message passing. Crocol's LLM roles are **specialists inside fixed nodes**: one structured call each, with no private loop or tool choice. The environmental specialist is one of them: a Gemini node that writes a brief the writer uses, chosen by a routing function, not an agent that decides anything on its own. The one place with an orchestrator–workers shape is research mode (`plan` → `Send` × ≤ 3 → `investigate` → `merge`). Even there, the workers run a fixed retrieve → fuse → rerank → grade pipeline. It is a map-reduce fan-out under a single state machine, not a society of agents.
 
 ### Planned extension
 
@@ -222,12 +274,7 @@ Crocol's agent is a **LangGraph state graph of specialised nodes**. Each node ha
 
 ```mermaid
 flowchart TD
-  START((START)) --> ENTRY{well attached?}
-  ENTRY -->|yes| SIMULATE[simulate<br/>rate and BHP sweep]
-  SIMULATE --> INTERPRET[interpret<br/>Claude Haiku]
-  INTERPRET --> FINALIZE
-
-  ENTRY -->|no| ANALYZE[analyze<br/>Claude Haiku]
+  START((START)) --> ANALYZE[analyze<br/>Claude Haiku]
   ANALYZE -->|quick| RT[retrieve_text]
   ANALYZE -->|quick| RS[retrieve_spatial]
   ANALYZE -->|quick| RG[retrieve_graph]
@@ -243,11 +290,15 @@ flowchart TD
   FUSE --> RERANK[rerank<br/>Cohere rerank-v4.0-fast]
   RERANK --> GRADE[grade<br/>Gemini Flash]
 
-  GRADE -->|sufficient| SYNTH[synthesize<br/>Claude Sonnet]
+  GRADE -->|sufficient| WRITER{environmental<br/>intent?}
   GRADE -->|insufficient, budget left| REWRITE[rewrite<br/>Claude Haiku]
   REWRITE --> RT
-  GRADE -->|partial or no evidence| SYNTH
+  GRADE -->|partial evidence| WRITER
+  GRADE -->|no evidence| SYNTH
   GRADE -->|no evidence, no budget| ABSTAIN[abstain]
+  WRITER -->|yes| ENV[environmentalist<br/>Gemini Flash<br/>specialist brief]
+  WRITER -->|no| SYNTH[synthesize<br/>Claude Sonnet]
+  ENV --> SYNTH
 
   SYNTH --> VERIFY[verify<br/>Gemini Flash]
   VERIFY -->|passed| FINALIZE[finalize<br/>citations · caveats · cap]
@@ -260,7 +311,7 @@ flowchart TD
 
 | Node | Model | Job |
 |---|---|---|
-| `analyze` | Claude Haiku | Detects language and intents (conceptual, spatial, production…), writes up to 3 query variants (original plus Spanish/English), extracts places and entities, chooses quick or research mode |
+| `analyze` | Claude Haiku | Detects language and intents (ecology, biodiversity, hydrology, environmental impact and regulation, river history, geology, spatial, production…), writes up to 3 query variants (original plus Spanish/English), extracts places and entities, chooses quick or research mode |
 | `retrieve_text` | (none) | Hybrid dense + BM25 search in Chroma, once per query variant, concurrently |
 | `retrieve_spatial` | (none) | Calls allowlisted `geo.*` PostGIS functions for the places in the question |
 | `retrieve_graph` | (none) | Resolves entities in the knowledge graph; returns linked chunks and a facts passage |
@@ -270,12 +321,15 @@ flowchart TD
 | `rerank` | Cohere | Cross-encoder rerank of the top 40; keeps 16, labelled C1…C16 |
 | `grade` | Gemini Flash | Keeps the relevant passages and decides whether the evidence is sufficient |
 | `rewrite` | Claude Haiku | A new search strategy (translation, wider scope, exact vs conceptual) |
-| `synthesize` | Claude Sonnet | A scientific answer from the labelled evidence only |
+| `environmentalist` | Gemini Flash | For environmental questions only: an expert brief over the graded evidence (ecosystems, species, pressures, river processes, governance, risks), each point tied to a passage label |
+| `synthesize` | Claude Sonnet | A scientific answer from the labelled evidence, organized with the brief when there is one |
 | `verify` | Gemini Flash | Splits the answer into claims and checks each one against the evidence (a different model family judges) |
 | `revise` | Claude Sonnet | Fixes or removes failing claims |
 | `finalize` | (none) | Renders citations from `rag.documents`, caps citations per paragraph, adds caveats and references |
 
-**Budgets.** Quick mode makes **4 LLM calls**: analyze, grade, synthesize, verify. Research mode makes **8**, an image question 5, and a simulation question 1. The routing functions in `routing.py` check the budget at every branch. When it runs out, the agent finalizes with the best evidence it has and marks the answer *partial*, instead of failing.
+**Budgets.** Quick mode makes **4 LLM calls**: analyze, grade, synthesize, verify. Research mode makes **8**, and an image question 5. An environmental question adds **1 call** for the specialist (5 quick, 9 research). The routing functions in `routing.py` check the budget at every branch. When it runs out, the agent finalizes with the best evidence it has and marks the answer *partial*, instead of failing.
+
+**The environmental specialist.** When the analyzer gives a question an environmental intent, `routing.writer()` sends the graded evidence to the `environmentalist` node before the writer, as long as the budget still covers the brief, the answer and its verification. Gemini reads the passages with an ecologist's frame (drivers, pressures, state, impacts, responses; the river as a connected system from source to delta) and returns six short sections: ecosystems, species, pressures and impacts, river processes, governance (laws, institutions, licensing) and open risks, each point ending with the label of its passage. The brief reaches Sonnet as analysis, not evidence. Sonnet uses it to organize and deepen the answer, but cites only the original passages, and the checker verifies the answer against those passages as usual. The brief's labels are filtered to passages that exist, and if the brief fails or times out, the answer is written without it.
 
 **Answer policy:**
 - *Partial evidence:* when relevant passages exist but don't cover everything, the agent answers and states what the corpus does not cover.
@@ -333,11 +387,13 @@ flowchart LR
   I2 --> M
   I3 --> M
   M --> C["conflict_check<br/>Gemini + verbatim quotes"]
-  C --> S["synthesize<br/>RESEARCH REPORT"]
+  C -->|environmental| E["environmentalist<br/>Gemini brief"]
+  C -->|other| S["synthesize<br/>RESEARCH REPORT"]
+  E --> S
   S --> V[verify] --> F[finalize]
 ```
 
-A research answer runs about 900–1,500 words, with a section per sub-question, a conclusion, and a "Where sources disagree" section when values conflict. The budget is 8 LLM calls and 180 s.
+A research answer runs about 900–1,500 words, with a section per sub-question, a conclusion, and a "Where sources disagree" section when values conflict. The budget is 8 LLM calls (9 with the environmental specialist) and 180 s. A live research question on how hydrocarbon activity affects the river's fish ran analyze → plan (2 sub-questions) → 2 parallel investigations → merge → conflict_check → environmentalist → synthesize → verify in 60 s, with 8 calls and 44 of 44 claims verified.
 
 ---
 
@@ -376,7 +432,7 @@ erDiagram
 ```
 
 - **A small graph that references, not copies.** Entities point at their `core` rows (wells, fields, municipalities) and their `rag` rows (documents). Spatial relations such as *near* and *inside* are computed by PostGIS at query time, not stored as edges.
-- **Size:** 11,978 entities (all 10,705 VMM wells plus 31 hand-curated stratigraphic units), 45,480 edges, and 9,629 chunk mentions in 3,647 chunks.
+- **Size:** 12,072 entities (all 10,705 VMM wells plus 31 hand-curated stratigraphic units), 45,634 edges, and 10,281 chunk mentions in 4,015 chunks. The river documents mostly link to riverside towns (Honda, Barrancabermeja, Puerto Berrío, Mariquita); species and ecosystems are not graph entities yet.
 - **Curated stratigraphy:** `kg/formations.yaml` lists the units, members and groups, which unit overlies which, and their ages.
 - **Relations** include `PART_OF` (member of a formation or group), `OVERLIES`, `IN_FIELD`, `OPERATED_BY`, `IN_CONTRACT`, `GOVERNED_BY`, `DESCRIBED_IN` and `AUTHORED_BY`.
 - **Deterministic entity linking:** an Aho-Corasick matcher with geological rules decides when a name in a chunk is really that entity:
@@ -461,7 +517,7 @@ erDiagram
   }
 ```
 
-The loader checks that Postgres and Chroma hold the same 11,420 chunks, and records sync checksums. Migrations are plain numbered SQL files, applied by `db/migrate.py`.
+The loader checks that Postgres and Chroma hold the same 13,725 chunks, and records sync checksums. Migrations are plain numbered SQL files, applied by `db/migrate.py`.
 
 ---
 
@@ -500,49 +556,6 @@ flowchart LR
 
 ---
 
-## Well simulator layer
-
-A **numerical oil-well simulator** (the owner's code) models single-phase undersaturated oil flow toward a well in a **radial r–z cylinder** with a logarithmic grid. It is an academic screening tool: no water, no free gas, no relative-permeability curves.
-
-```mermaid
-flowchart TD
-  FORM["Well-Sim form<br/>reservoir, rock, oil, well,<br/>constraints, time, sweep"] -->|Run| RUN["POST /api/wellsim/run"]
-  FORM -->|Sweep| SWP["POST /api/wellsim/sweep"]
-  FORM -->|Ask Crocol| CHAT["POST /api/chat/stream<br/>question + well"]
-
-  RUN --> ADP["NumericWellSimulator adapter<br/>public caps, θ = 1 implicit"]
-  SWP --> ADP
-  ADP --> RUNNER["SimulationRunner<br/>one at a time, worker thread,<br/>timeouts"]
-  RUNNER --> SOLVER["Banded Cholesky solver<br/>scipy solveh_banded<br/>+ exact well-row elimination"]
-
-  CHAT --> SIMN["simulate node<br/>sweep, no LLM"]
-  SIMN --> RUNNER
-  SIMN --> INT["interpret node<br/>Claude Haiku, 1 call"]
-  INT --> FIN["finalize<br/>Crocol-WellSim-2026"]
-
-  SOLVER --> RES["Results"]
-  RES --> PANEL["Production panel<br/>q, Np, pwf, avg. pressure, pb line"]
-  RES --> OVER["Map overlay<br/>sweep chart, case table,<br/>ΔP r–z heatmap + ΔP(r)"]
-```
-
-- **Solver:** the cell block is symmetric positive-definite and banded (offsets 0, 1 and Nz), so each implicit time step uses a **banded Cholesky** solve, and the well's bordering row and column are eliminated exactly. Compared with the original dense solver, it gives the same results to about 1e-9 psi and runs **40× faster** on a default sweep (23 s → 0.5 s) with a fifth of the memory. It runs single-threaded on purpose: for matrices this small, BLAS threads were slower.
-- **Sweep:** it tries a grid of rate and bottomhole-pressure controls and reports:
-  - the **recommended rate**, the lowest rate whose recovery is within tolerance of the best;
-  - the **best discounted rate**, which gains from the time value of money;
-  - the **binding constraints**: the bubble-point floor, minimum BHP, maximum drawdown, facility limit or economic limit.
-- **Agent path:** when a chat question carries a well, the agent **skips the whole research chain** and goes straight from `simulate` to a single Haiku call that interprets the sweep. That call:
-  - never recomputes numbers and answers in the user's language;
-  - gives the recommended operating rate and minimum flowing BHP;
-  - advises keeping the pressure above the bubble point;
-  - restates the single-phase assumptions.
-- **Public limits:**
-  - grid ≤ 50 × 20 cells and ≤ 365 time steps;
-  - ≤ 12 rate and ≤ 10 BHP cases per sweep;
-  - 10 runs per minute and 20 sweeps per day per IP;
-  - the time scheme is fixed at fully implicit, with closed boundaries.
-
----
-
 ## Offline document pipeline
 
 ```mermaid
@@ -558,15 +571,16 @@ flowchart LR
 ```
 
 - Extraction is text-only with PyMuPDF; there's no OCR.
-- Scanned ANH contracts use a **legal mode** that splits them by ANEXO, CAPÍTULO, clause and article.
+- Contracts and laws use a **legal mode** that splits them by ANEXO, TÍTULO, CAPÍTULO, clause and article, including articles that run on inside a paragraph (Ley 99 de 1993: 116 of its 118 articles become their own chunks).
 - Theses get their authors, institution and year from their file names.
-- Embeddings are cached by chunk id and content hash, so adding documents only pays for the new chunks. The full corpus cost about $0.41 to embed.
+- Embeddings are cached by chunk id and content hash, so adding documents only pays for the new chunks. The geology corpus cost about $0.41 to embed; the river batch (2,306 chunks, about 0.95M tokens) about $0.12.
 
 ---
 
 ## Frontend
 
-A React + TypeScript + Tailwind + Vite SPA, with five panels:
+A React + TypeScript + Tailwind + Vite SPA, with four panels:
+- **Header:** links to learn more about the Magdalena river (SGC open data, travel and history guides, an EBSCO research starter).
 - **Stratigraphic column:** the VMM units, with formation details and "Investigate with Crocol".
 - **Chat:**
   - live SSE steps show which node is working;
@@ -576,8 +590,7 @@ A React + TypeScript + Tailwind + Vite SPA, with five panels:
 - **Geological map (MapLibre GL):**
   - the live **SGC Mapa Geológico de Colombia 2023** layer, with click-to-identify on chronostratigraphic units;
   - place search through PostGIS, with knowledge-graph entity cards.
-- **Production panel (Recharts):** ANH oil and gas series with trend badges, or the well simulator's curves.
-- **Well-Sim:** a header button opens the simulator form over the stratigraphy column; results appear over the map and in the Production panel.
+- **Production panel (Recharts):** a photo of the Magdalena river until an answer brings production data, then the ANH oil and gas series with trend badges.
 
 The interface is bilingual (Spanish and English).
 
@@ -587,13 +600,12 @@ The interface is bilingual (Spanish and English).
 
 - **No chat logs:**
   - questions, answers, query variants and model free text are never persisted;
-  - traces keep only node names, timings, counts and chunk ids;
-  - well-simulator parameters are never stored.
+  - traces keep only node names, timings, counts and chunk ids.
 - **Uploaded images** are the one exception: a sanitized JPEG copy with EXIF stripped is kept for 72 h, then purged.
 - **Database:** read-only pool sessions with a 5 s statement timeout and fixed, parameterized SQL only. The models never write SQL.
 - **Abuse and cost limits:**
   - 1 question per minute and 12 per day per IP;
-  - 30 questions and about 800k tokens per day for the whole app;
+  - 30 questions and 1M tokens per day for the whole app;
   - 2 concurrent agent runs;
   - LLM-call budgets per mode and a total timeout per question.
 - **Fail soft:**
@@ -608,11 +620,10 @@ The interface is bilingual (Spanish and English).
 | Layer | Technology |
 |---|---|
 | Agent | LangGraph 1.2, Pydantic structured outputs |
-| LLMs | Claude Sonnet (writer), Claude Haiku (analyst, planner, simulation interpreter), Gemini Flash (grader, verifier, vision), with cross-family fallbacks |
+| LLMs | Claude Sonnet (writer), Claude Haiku (analyst, planner, search strategist), Gemini Flash (grader, verifier, vision, environmental specialist), with cross-family fallbacks |
 | Retrieval | Chroma Cloud (dense + BM25 sparse, server-side RRF), OpenAI `text-embedding-3-large`, Cohere `rerank-v4.0-fast` |
 | Database | PostgreSQL 16 + PostGIS 3.5 (Docker), psycopg 3 async pool |
 | Vision | ONNX Runtime (CPU), MobileNetV2-UNet |
-| Simulation | NumPy, SciPy (banded Cholesky) |
 | API | FastAPI, SSE streaming |
 | Frontend | React, TypeScript, Tailwind CSS, Vite, Recharts, MapLibre GL, zustand, Axios, react-markdown |
 | Extraction | PyMuPDF, pyahocorasick |
@@ -674,18 +685,18 @@ src/
     domains/                pure logic: citations, fusion, linking, trends
     application/
       agent/                LangGraph graph, nodes, routing, prompts
-      tools/                text, spatial, graph, production, image, simulation
+      tools/                text, spatial, graph, production, image
       ports/                protocols for every external service
       usecases/             ask a question, get a trace, get an entity
     infrastructure/         Chroma, psycopg, Claude, Gemini, Cohere,
-                            ONNX vision, well simulator
+                            ONNX vision
     app/                    FastAPI routers, schemas, guards
 pipelines/                  offline extraction, chunking, indexing, loaders
 db/                         SQL migrations and functions (geo, kg, prod)
 kg/                         curated formations and stop-alias lists
 frontend/                   React SPA
 tests/                      offline and integration tests
-spikes/                     experiments, A/B reports, the simulator CLI
+spikes/                     experiments, A/B reports
 ```
 
 ---
@@ -694,9 +705,10 @@ spikes/                     experiments, A/B reports, the simulator CLI
 
 - **Short follow-up memory:** the browser sends back at most 3 signed memory records (24 h); research mode uses none. There is no server-side conversation store, by design.
 - **Fixed control flow:** no LLM chooses the next step, so questions the allowlisted SQL functions cannot express (for example "the deepest well of the top 5 producing fields") are out of scope until the planned SQL sub-agent.
-- **Text-only extraction:** information that exists only in images (scanned figures, maps) is not indexed.
+- **Text-only extraction:** information that exists only in images (scanned figures, maps, the distribution maps of the red book) is not indexed, and scanned laws without a text layer cannot be added without OCR.
+- **Uneven environmental coverage:** some topics are thin in the corpus, for example the direct effects of oil spills on fish; the agent then fills gaps with labelled general knowledge, and says so.
+- **The knowledge graph is still geological:** species, ecosystems and ciénagas are not graph entities, so ecological questions rely on text retrieval and the specialist brief.
 - **Crack measurements** are in pixels and image angles, not real-world units.
-- **The well simulator** is single-phase and depletion-only: a screening tool for teaching, not a reservoir-engineering design.
 - **Production data** covers 2025-01 to 2026-08 only.
 - **Knowledge-graph links** are rule-based; precision is still being reviewed by hand against a sample.
 
@@ -708,4 +720,4 @@ The code is released under the [MIT License](LICENSE). The license covers Crocol
 
 ---
 
-*Crocol was built as an academic portfolio project on the geology and petroleum systems of the Middle Magdalena Valley, Colombia. Data © ANH and SGC; literature © the respective authors and institutions.*
+*Crocol was built as an academic portfolio project on the Magdalena river of Colombia: its ecology, environment, history and geology, including the petroleum systems of the Middle Magdalena Valley. Data © ANH and SGC; literature © the respective authors and institutions.*

@@ -1,7 +1,7 @@
 import pytest
 from fakes import FakeGraph, FakeLLM, FakeStore, graph_rows, row
 
-from config.settings import KG_LABEL
+from config.settings import CORE_COLLECTIONS, KG_LABEL
 from crocol.application.agent.graph import build_graph
 from crocol.application.agent.nodes.retrieve import retrieve_graph
 from crocol.application.agent.schemas import (
@@ -53,7 +53,7 @@ async def test_graph_search_renders_facts_and_fetches_chunks() -> None:
     resolve = dict(graph.calls)["resolve"]
     assert resolve["name"] == "La Luna"
     evidence = dict(graph.calls)["evidence_chunks"]
-    assert evidence["collections"] == ["VMM_Basin"]
+    assert evidence["collections"] == list(CORE_COLLECTIONS)
     assert evidence["peripheral"] is False
 
 
